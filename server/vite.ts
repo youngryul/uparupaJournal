@@ -75,7 +75,7 @@ export function serveStatic(app: Express) {
   const distPath = path.resolve(__dirname, "../public");
   console.log("[serveStatic] Serving static files from:", distPath);
 
-  if (!require("fs").existsSync(distPath)) {
+  if (!fs.existsSync(distPath)) {
     throw new Error(`[serveStatic] Build directory not found: ${distPath}. Please run the build first.`);
   }
 

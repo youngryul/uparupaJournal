@@ -2,7 +2,7 @@ import express, { type Express } from "express";
 import fs from "fs";
 import { createServer as createViteServer, createLogger } from "vite";
 import { type Server } from "http";
-import viteConfig from "../vite.config";
+import viteConfig from "../vite.client.config.ts";
 import { nanoid } from "nanoid";
 import { fileURLToPath } from "url";
 import path from "path";
@@ -72,18 +72,17 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function serveStatic(app: Express) {
-  const distPath = path.resolve(__dirname, "../client/dist");
+  const distPath = path.resolve(__dirname, "../public");
+  console.log("[serveStatic] Serving static files from:", distPath);
 
-  if (!fs.existsSync(distPath)) {
-    throw new Error(
-        `Could not find the build directory: ${distPath}, make sure to build the client first`,
-    );
+  if (!require("fs").existsSync(distPath)) {
+    throw new Error(`[serveStatic] Build directory not found: ${distPath}. Please run the build first.`);
   }
 
   app.use(express.static(distPath));
 
-  // fall through to index.html if the file doesn't exist
-  app.use("*", (_req, res) => {
+  app.use("*", (req, res) => {
+    console.log(`[serveStatic] Fallback route for: ${req.method} ${req.originalUrl}`);
     res.sendFile(path.resolve(distPath, "index.html"));
   });
 }

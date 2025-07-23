@@ -3,7 +3,6 @@ import { Edit, Trash2, Heart, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AxolotlCharacter } from "./axolotl-character";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { DiaryEntry } from "@shared/schema";
@@ -131,7 +130,6 @@ export function DiaryEntriesList({ entries, isLoading, onEntryUpdated }: DiaryEn
               >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center space-x-4">
-                    <AxolotlCharacter emotion={entry.emotion} size="md" />
                     <div>
                       <h3 className="font-semibold text-sky-800 group-hover:text-sky-600 transition-colors">
                         {formatDate(entry.date)}

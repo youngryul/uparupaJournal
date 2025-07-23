@@ -10,7 +10,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { EmotionSelector } from "./emotion-selector";
-import { AxolotlCharacter } from "./axolotl-character";
 import { useToast } from "@/hooks/use-toast";
 import { Heart, Save, Eye } from "lucide-react";
 
@@ -139,11 +138,6 @@ export function DiaryEntryForm({ onSuccess }: DiaryEntryFormProps) {
                         placeholder="오늘 있었던 일들을 자유롭게 적어보세요... 🌸"
                         className="h-48 p-4 border-2 border-sky-light/50 rounded-2xl focus:border-sky-light bg-sky-light/5 text-sky-800 resize-none"
                       />
-                      {selectedEmotion && (
-                        <div className="absolute top-4 right-4 animate-float">
-                          <AxolotlCharacter emotion={selectedEmotion} size="sm" />
-                        </div>
-                      )}
                     </div>
                   </FormControl>
                   <FormMessage />
@@ -153,24 +147,7 @@ export function DiaryEntryForm({ onSuccess }: DiaryEntryFormProps) {
 
             {/* Action Buttons */}
             <div className="flex justify-between items-center">
-              <Button
-                type="button"
-                variant="outline"
-                className="px-6 py-3 bg-gray-soft text-sky-700 rounded-2xl font-semibold hover:bg-gray-soft/80 border-sky-light/30"
-              >
-                <Save className="w-4 h-4 mr-2" />
-                임시저장
-              </Button>
-              
               <div className="flex space-x-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="px-6 py-3 bg-sky-light/30 text-sky-700 rounded-2xl font-semibold hover:bg-sky-light/50 border-sky-light/50"
-                >
-                  <Eye className="w-4 h-4 mr-2" />
-                  미리보기
-                </Button>
                 <Button
                   type="submit"
                   disabled={createMutation.isPending}

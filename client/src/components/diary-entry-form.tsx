@@ -22,8 +22,8 @@ export function DiaryEntryForm({ onSuccess }: DiaryEntryFormProps) {
   const queryClient = useQueryClient();
   const [selectedEmotion, setSelectedEmotion] = useState<string>("");
 
-  const form = useForm<InsertDiaryEntry>({
-    resolver: zodResolver(insertDiaryEntrySchema),
+  const form = useForm<Omit<InsertDiaryEntry, 'userId'>>({
+    resolver: zodResolver(insertDiaryEntrySchema.omit({ userId: true })),
     defaultValues: {
       date: new Date().toISOString().split('T')[0],
       emotion: "",
@@ -32,7 +32,7 @@ export function DiaryEntryForm({ onSuccess }: DiaryEntryFormProps) {
   });
 
   const createMutation = useMutation({
-    mutationFn: async (data: InsertDiaryEntry) => {
+    mutationFn: async (data: Omit<InsertDiaryEntry, 'userId'>) => {
       const response = await apiRequest("POST", "/api/diary-entries", data);
       return response.json();
     },
@@ -55,7 +55,7 @@ export function DiaryEntryForm({ onSuccess }: DiaryEntryFormProps) {
     },
   });
 
-  const onSubmit = (data: InsertDiaryEntry) => {
+  const onSubmit = (data: Omit<InsertDiaryEntry, 'userId'>) => {
     createMutation.mutate(data);
   };
 

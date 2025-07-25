@@ -1,17 +1,19 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Search, Menu, Calendar, Plus } from "lucide-react";
+import { Search, Menu, Calendar, Plus, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DiaryEntryForm } from "@/components/diary-entry-form";
 import { DiaryEntriesList } from "@/components/diary-entries-list";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useAuth } from "@/contexts/AuthContext";
 import type { DiaryEntry } from "@shared/schema";
 
 export default function DiaryPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showWriteForm, setShowWriteForm] = useState(true);
   const isMobile = useIsMobile();
+  const { user, logout } = useAuth();
 
   const { data: entries = [], isLoading, refetch } = useQuery<DiaryEntry[]>({
     queryKey: ["/api/diary-entries"],
@@ -32,7 +34,10 @@ export default function DiaryPage() {
               <div className="w-12 h-12 bg-sky-light rounded-full flex items-center justify-center text-2xl animate-float">
                 🌸
               </div>
-              <h1 className="text-2xl font-bold text-sky-800">우파루파 일기장</h1>
+              <div>
+                <h1 className="text-2xl font-bold text-sky-800">우파루파 일기장</h1>
+                <p className="text-sm text-sky-600">안녕하세요, {user?.username}님!</p>
+              </div>
             </div>
             
             <div className="flex items-center space-x-3">
@@ -48,9 +53,11 @@ export default function DiaryPage() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="w-10 h-10 bg-sky-light/30 hover:bg-sky-light/50 text-sky-700"
+                onClick={logout}
+                className="w-10 h-10 bg-coral-soft/30 hover:bg-coral-soft/50 text-sky-700"
+                title="로그아웃"
               >
-                <Menu className="h-4 w-4" />
+                <LogOut className="h-4 w-4" />
               </Button>
             </div>
           </div>

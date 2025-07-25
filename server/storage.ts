@@ -1,91 +1,88 @@
-import { users, diaryEntries, type User, type InsertUser, type DiaryEntry, type InsertDiaryEntry } from "@shared/schema";
+import { 
+  users, 
+  diaryEntries, 
+  type User, 
+  type InsertUser, 
+  type DiaryEntry, 
+  type InsertDiaryEntry 
+} from "@shared/schema";
+import { db } from "./db";
+import { eq, desc } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   
-  getDiaryEntries(): Promise<DiaryEntry[]>;
+  getDiaryEntries(userId: number): Promise<DiaryEntry[]>;
   getDiaryEntry(id: number): Promise<DiaryEntry | undefined>;
   createDiaryEntry(entry: InsertDiaryEntry): Promise<DiaryEntry>;
   updateDiaryEntry(id: number, entry: Partial<InsertDiaryEntry>): Promise<DiaryEntry | undefined>;
   deleteDiaryEntry(id: number): Promise<boolean>;
-  searchDiaryEntries(query: string): Promise<DiaryEntry[]>;
+  searchDiaryEntries(query: string, userId: number): Promise<DiaryEntry[]>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private diaryEntries: Map<number, DiaryEntry>;
-  private currentUserId: number;
-  private currentDiaryId: number;
-
-  constructor() {
-    this.users = new Map();
-    this.diaryEntries = new Map();
-    this.currentUserId = 1;
-    this.currentDiaryId = 1;
-  }
-
+export class DatabaseStorage implements IStorage {
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.currentUserId++;
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
+    const [user] = await db
+      .insert(users)
+      .values(insertUser)
+      .returning();
     return user;
   }
 
-  async getDiaryEntries(): Promise<DiaryEntry[]> {
-    return Array.from(this.diaryEntries.values()).sort((a, b) => 
-      new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
+  async getDiaryEntries(userId: number): Promise<DiaryEntry[]> {
+    return await db
+      .select()
+      .from(diaryEntries)
+      .where(eq(diaryEntries.userId, userId))
+      .orderBy(desc(diaryEntries.createdAt));
   }
 
   async getDiaryEntry(id: number): Promise<DiaryEntry | undefined> {
-    return this.diaryEntries.get(id);
+    const [entry] = await db.select().from(diaryEntries).where(eq(diaryEntries.id, id));
+    return entry || undefined;
   }
 
   async createDiaryEntry(insertEntry: InsertDiaryEntry): Promise<DiaryEntry> {
-    const id = this.currentDiaryId++;
-    const entry: DiaryEntry = { 
-      ...insertEntry, 
-      id,
-      createdAt: new Date().toISOString()
-    };
-    this.diaryEntries.set(id, entry);
+    const [entry] = await db
+      .insert(diaryEntries)
+      .values(insertEntry)
+      .returning();
     return entry;
   }
 
   async updateDiaryEntry(id: number, updateEntry: Partial<InsertDiaryEntry>): Promise<DiaryEntry | undefined> {
-    const existing = this.diaryEntries.get(id);
-    if (!existing) return undefined;
-
-    const updated: DiaryEntry = { ...existing, ...updateEntry };
-    this.diaryEntries.set(id, updated);
-    return updated;
+    const [updated] = await db
+      .update(diaryEntries)
+      .set(updateEntry)
+      .where(eq(diaryEntries.id, id))
+      .returning();
+    return updated || undefined;
   }
 
   async deleteDiaryEntry(id: number): Promise<boolean> {
-    return this.diaryEntries.delete(id);
+    const result = await db.delete(diaryEntries).where(eq(diaryEntries.id, id));
+    return (result.rowCount ?? 0) > 0;
   }
 
-  async searchDiaryEntries(query: string): Promise<DiaryEntry[]> {
-    const lowercaseQuery = query.toLowerCase();
-    return Array.from(this.diaryEntries.values())
-      .filter(entry => 
-        entry.content.toLowerCase().includes(lowercaseQuery) ||
-        entry.emotion.toLowerCase().includes(lowercaseQuery)
-      )
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  async searchDiaryEntries(query: string, userId: number): Promise<DiaryEntry[]> {
+    return await db
+      .select()
+      .from(diaryEntries)
+      .where(eq(diaryEntries.userId, userId))
+      .orderBy(desc(diaryEntries.createdAt));
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();

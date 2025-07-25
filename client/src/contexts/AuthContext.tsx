@@ -39,7 +39,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     onSuccess: (data) => {
       setToken(data.token);
       localStorage.setItem('auth_token', data.token);
-      queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
+      // Force refetch user data after setting token
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
+      }, 100);
     },
   });
 
@@ -51,7 +54,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     onSuccess: (data) => {
       setToken(data.token);
       localStorage.setItem('auth_token', data.token);
-      queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
+      // Force refetch user data after setting token
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
+      }, 100);
     },
   });
 

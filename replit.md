@@ -2,11 +2,20 @@
 
 ## Overview
 
-This is a full-stack diary application with a cute axolotl theme. Users can create, read, update, and delete diary entries with emotional states. The application features a React frontend with shadcn/ui components and an Express.js backend with PostgreSQL database support via Drizzle ORM.
+This is a full-stack diary application with a cute axolotl theme and user authentication system. Users can sign up, log in, and manage their personal diary entries with emotional states represented by axolotl characters. The application features a React frontend with shadcn/ui components and an Express.js backend with PostgreSQL database support via Drizzle ORM.
 
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+
+## Recent Changes (January 2025)
+
+- ✓ Added user authentication system with JWT tokens
+- ✓ Implemented PostgreSQL database with user and diary entry tables
+- ✓ Created signup and login pages with form validation
+- ✓ Added user session management and protected routes
+- ✓ Updated diary entries to be user-specific
+- ✓ Added logout functionality with user greeting display
 
 ## System Architecture
 
@@ -37,15 +46,23 @@ Preferred communication style: Simple, everyday language.
 
 ### Database Schema
 The application uses two main tables:
-- **Users**: Basic user information (id, username, password)
-- **Diary Entries**: Main content (id, date, emotion, content, createdAt)
+- **Users**: User information (id, username, hashed password, createdAt)
+- **Diary Entries**: Main content (id, userId, date, emotion, content, createdAt) - linked to specific users
 
 ### API Endpoints
-- `GET /api/diary-entries` - Retrieve all diary entries
+
+#### Authentication Endpoints
+- `POST /api/auth/signup` - User registration with username and password
+- `POST /api/auth/login` - User login with credentials
+- `GET /api/auth/me` - Get current user information (protected)
+
+#### Diary Endpoints (All Protected)
+- `GET /api/diary-entries` - Retrieve user's diary entries
 - `GET /api/diary-entries/:id` - Retrieve a specific diary entry
 - `POST /api/diary-entries` - Create a new diary entry
 - `PUT /api/diary-entries/:id` - Update an existing diary entry
 - `DELETE /api/diary-entries/:id` - Delete a diary entry
+- `GET /api/diary-entries/search/:query` - Search user's diary entries
 
 ### Frontend Features
 - **Emotion Selection**: Visual emotion picker with axolotl characters

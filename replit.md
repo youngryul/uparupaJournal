@@ -16,6 +16,7 @@ Preferred communication style: Simple, everyday language.
 - ✓ Added user session management and protected routes
 - ✓ Updated diary entries to be user-specific
 - ✓ Added logout functionality with user greeting display
+- ✓ Migrated database from Neon to Supabase for improved functionality
 
 ## System Architecture
 
@@ -32,12 +33,12 @@ Preferred communication style: Simple, everyday language.
 - **Runtime**: Node.js with Express.js framework
 - **Language**: TypeScript with ES modules
 - **Database**: PostgreSQL with Drizzle ORM
-- **Database Client**: Neon serverless PostgreSQL client
+- **Database Client**: Supabase PostgreSQL with postgres-js client
 - **Validation**: Zod schemas shared between frontend and backend
 - **Development**: Hot reloading with Vite integration
 
 ### Data Storage
-- **Database**: PostgreSQL configured for use with Neon serverless
+- **Database**: PostgreSQL configured for use with Supabase
 - **ORM**: Drizzle ORM for type-safe database operations
 - **Migrations**: Drizzle Kit for schema management
 - **Schema Location**: `shared/schema.ts` for shared types between client and server

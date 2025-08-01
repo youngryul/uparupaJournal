@@ -31,6 +31,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         user: { id: user.id, username: user.username }
       });
     } catch (error) {
+      console.error("Signup error:", error);
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "입력 데이터가 올바르지 않습니다", errors: error.errors });
       }
@@ -59,6 +60,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         user: { id: user.id, username: user.username }
       });
     } catch (error) {
+      console.error("Login error:", error);
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "입력 데이터가 올바르지 않습니다", errors: error.errors });
       }
@@ -74,6 +76,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.json({ id: user.id, username: user.username });
     } catch (error) {
+      console.error("Get user error:", error);
       res.status(500).json({ message: "사용자 정보를 가져오는데 실패했습니다" });
     }
   });

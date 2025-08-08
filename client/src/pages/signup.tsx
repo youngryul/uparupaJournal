@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { signupSchema, type SignupData } from "@shared/schema";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import { UserPlus, User, Lock } from "lucide-react";
 export default function SignupPage() {
   const { signup } = useAuth();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<SignupData>({
@@ -33,6 +34,10 @@ export default function SignupPage() {
         title: "회원가입 완료! 🎉",
         description: "우파루파 일기장에 오신 것을 환영합니다!",
       });
+      // 회원가입 성공 후 일기 작성 페이지로 리다이렉트
+      setTimeout(() => {
+        setLocation("/diary");
+      }, 1000); // 토스트 메시지를 보여준 후 리다이렉트
     } catch (error: any) {
       toast({
         title: "회원가입 실패",

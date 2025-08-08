@@ -19,7 +19,7 @@ Preferred communication style: Simple, everyday language.
 - ✓ Migrated database from Neon to Supabase for improved functionality
 - ✓ Successfully connected to Supabase PostgreSQL database
 - ✓ All existing user data and diary entries preserved during migration
-- ✓ Added automatic redirect to diary writing page after signup
+- ✓ Added automatic redirect to main page after signup with proper route handling
 
 ## System Architecture
 

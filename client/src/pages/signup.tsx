@@ -10,13 +10,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { UserPlus, User, Lock } from "lucide-react";
-import { useLocation  } from "wouter";
 
 export default function SignupPage() {
   const { signup } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  const [, navigate] = useLocation ();
 
   const form = useForm<SignupData>({
     resolver: zodResolver(signupSchema),
@@ -35,7 +33,6 @@ export default function SignupPage() {
         title: "회원가입 완료! 🎉",
         description: "우파루파 일기장에 오신 것을 환영합니다!",
       });
-      navigate("/");
     } catch (error: any) {
       toast({
         title: "회원가입 실패",
@@ -72,11 +69,14 @@ export default function SignupPage() {
                   <FormItem>
                     <FormLabel className="text-sky-700 font-semibold">사용자명</FormLabel>
                     <FormControl>
-                      <Input
+                      <div className="relative">
+                        <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sky-600 w-5 h-5" />
+                        <Input
                           {...field}
                           placeholder="3-20자 사용자명"
                           className="pl-10 p-4 border-2 border-sky-light/50 rounded-2xl focus:border-sky-light bg-sky-light/5 text-sky-800"
-                      />
+                        />
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -90,12 +90,15 @@ export default function SignupPage() {
                   <FormItem>
                     <FormLabel className="text-sky-700 font-semibold">비밀번호</FormLabel>
                     <FormControl>
-                      <Input
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sky-600 w-5 h-5" />
+                        <Input
                           {...field}
                           type="password"
                           placeholder="6자 이상 비밀번호"
                           className="pl-10 p-4 border-2 border-sky-light/50 rounded-2xl focus:border-sky-light bg-sky-light/5 text-sky-800"
-                      />
+                        />
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -109,12 +112,15 @@ export default function SignupPage() {
                   <FormItem>
                     <FormLabel className="text-sky-700 font-semibold">비밀번호 확인</FormLabel>
                     <FormControl>
-                      <Input
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sky-600 w-5 h-5" />
+                        <Input
                           {...field}
                           type="password"
                           placeholder="비밀번호를 다시 입력하세요"
                           className="pl-10 p-4 border-2 border-sky-light/50 rounded-2xl focus:border-sky-light bg-sky-light/5 text-sky-800"
-                      />
+                        />
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>

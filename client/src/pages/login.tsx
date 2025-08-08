@@ -68,11 +68,14 @@ export default function LoginPage() {
                   <FormItem>
                     <FormLabel className="text-sky-700 font-semibold">사용자명</FormLabel>
                     <FormControl>
-                      <Input
+                      <div className="relative">
+                        <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sky-600 w-5 h-5" />
+                        <Input
                           {...field}
                           placeholder="사용자명을 입력하세요"
-                          className="p-4 border-2 border-sky-light/50 rounded-2xl focus:border-sky-light bg-sky-light/5 text-sky-800"
-                      />
+                          className="pl-10 p-4 border-2 border-sky-light/50 rounded-2xl focus:border-sky-light bg-sky-light/5 text-sky-800"
+                        />
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -86,12 +89,15 @@ export default function LoginPage() {
                   <FormItem>
                     <FormLabel className="text-sky-700 font-semibold">비밀번호</FormLabel>
                     <FormControl>
-                      <Input
+                      <div className="relative">
+                        <LogIn className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sky-600 w-5 h-5" />
+                        <Input
                           {...field}
                           type="password"
                           placeholder="비밀번호를 입력하세요"
                           className="pl-10 p-4 border-2 border-sky-light/50 rounded-2xl focus:border-sky-light bg-sky-light/5 text-sky-800"
-                      />
+                        />
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>

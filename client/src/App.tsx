@@ -36,6 +36,7 @@ function Router() {
       ) : (
         <>
           <Route path="/" component={DiaryPage} />
+          <Route path="/diary" component={DiaryPage} />
         </>
       )}
       <Route component={NotFound} />

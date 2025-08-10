@@ -6,9 +6,13 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import NotFound from "@/pages/not-found";
 import DiaryPage from "@/pages/diary";
+import MemoirPage from "@/pages/memoir";
 import LoginPage from "@/pages/login";
 import SignupPage from "@/pages/signup";
-import { useEffect } from "react";
+import MenuSelectionPage from "@/pages/menu-selection";
+import { Navigation } from "@/components/navigation";
+import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 // Redirect component for authenticated users
 function AuthRedirect() {
@@ -22,9 +26,26 @@ function AuthRedirect() {
 }
 
 function Router() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
+  const [showMenuSelection, setShowMenuSelection] = useState(false);
 
-  if (isLoading) {
+  // 사용자의 메뉴 설정 확인
+  const { data: userPreferences, isLoading: isPreferencesLoading } = useQuery<{ useDiary?: boolean; useMemoir?: boolean }>({
+    queryKey: ['/api/auth/user-preferences'],
+    enabled: !!user,
+  });
+
+  // 사용자가 로그인했지만 메뉴 설정이 없으면 메뉴 선택 화면 표시
+  useEffect(() => {
+    if (isAuthenticated && userPreferences && !isPreferencesLoading) {
+      // 메뉴가 둘 다 꺼져있으면 메뉴 선택 페이지 표시
+      if (!userPreferences.useDiary && !userPreferences.useMemoir) {
+        setShowMenuSelection(true);
+      }
+    }
+  }, [isAuthenticated, userPreferences, isPreferencesLoading]);
+
+  if (isLoading || (isAuthenticated && isPreferencesLoading)) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-sky-soft to-cloud-white flex items-center justify-center">
         <div className="text-center">
@@ -37,24 +58,41 @@ function Router() {
     );
   }
 
+  // 메뉴 선택 페이지 표시
+  if (showMenuSelection && isAuthenticated) {
+    return (
+      <MenuSelectionPage 
+        onComplete={() => {
+          setShowMenuSelection(false);
+        }} 
+      />
+    );
+  }
+
   return (
-    <Switch>
-      {!isAuthenticated ? (
-        <>
-          <Route path="/login" component={LoginPage} />
-          <Route path="/signup" component={SignupPage} />
-          <Route path="/" component={LoginPage} />
-        </>
-      ) : (
-        <>
-          <Route path="/" component={DiaryPage} />
-          <Route path="/diary" component={DiaryPage} />
-          <Route path="/login" component={AuthRedirect} />
-          <Route path="/signup" component={AuthRedirect} />
-        </>
-      )}
-      <Route component={NotFound} />
-    </Switch>
+    <div className="relative">
+      <Switch>
+        {!isAuthenticated ? (
+          <>
+            <Route path="/login" component={LoginPage} />
+            <Route path="/signup" component={SignupPage} />
+            <Route path="/" component={LoginPage} />
+          </>
+        ) : (
+          <>
+            <Route path="/" component={DiaryPage} />
+            <Route path="/diary" component={DiaryPage} />
+            <Route path="/memoir" component={MemoirPage} />
+            <Route path="/login" component={AuthRedirect} />
+            <Route path="/signup" component={AuthRedirect} />
+          </>
+        )}
+        <Route component={NotFound} />
+      </Switch>
+      
+      {/* 네비게이션은 로그인한 사용자에게만 표시 */}
+      {isAuthenticated && !showMenuSelection && <Navigation />}
+    </div>
   );
 }
 

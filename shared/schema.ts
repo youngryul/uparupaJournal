@@ -17,6 +17,8 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
+  useDiary: boolean("use_diary").default(true),
+  useMemoir: boolean("use_memoir").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -29,9 +31,20 @@ export const diaryEntries = pgTable("diary_entries", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const memoirEntries = pgTable("memoir_entries", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  period: text("period"), // 예: "2024년 상반기", "대학교 시절" 등
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
+  useDiary: true,
+  useMemoir: true,
 });
 
 export const insertDiaryEntrySchema = createInsertSchema(diaryEntries).pick({
@@ -39,6 +52,13 @@ export const insertDiaryEntrySchema = createInsertSchema(diaryEntries).pick({
   date: true,
   emotion: true,
   content: true,
+});
+
+export const insertMemoirEntrySchema = createInsertSchema(memoirEntries).pick({
+  userId: true,
+  title: true,
+  content: true,
+  period: true,
 });
 
 export const loginSchema = z.object({
@@ -55,9 +75,17 @@ export const signupSchema = z.object({
   path: ["confirmPassword"],
 });
 
+export const menuSelectionSchema = z.object({
+  useDiary: z.boolean().default(true),
+  useMemoir: z.boolean().default(false),
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertDiaryEntry = z.infer<typeof insertDiaryEntrySchema>;
 export type DiaryEntry = typeof diaryEntries.$inferSelect;
+export type InsertMemoirEntry = z.infer<typeof insertMemoirEntrySchema>;
+export type MemoirEntry = typeof memoirEntries.$inferSelect;
 export type LoginData = z.infer<typeof loginSchema>;
 export type SignupData = z.infer<typeof signupSchema>;
+export type MenuSelectionData = z.infer<typeof menuSelectionSchema>;

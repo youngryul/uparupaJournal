@@ -85,7 +85,7 @@
   }
   
   .animate-bounce-gentle {
-    animation: bounce 2s infinite;
+    animation: bounce-gentle 2s infinite;
   }
   
   .line-clamp-3 {
@@ -104,6 +104,11 @@
 @keyframes wiggle {
   0%, 100% { transform: rotate(-3deg); }
   50% { transform: rotate(3deg); }
+}
+
+@keyframes bounce-gentle {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-5px); }
 }
 
 /* Custom color classes */

@@ -17,8 +17,9 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
-  useDiary: boolean("use_diary").default(true),
+  useDiary: boolean("use_diary").default(false),
   useMemoir: boolean("use_memoir").default(false),
+  menuConfigured: boolean("menu_configured").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -45,6 +46,7 @@ export const insertUserSchema = createInsertSchema(users).pick({
   password: true,
   useDiary: true,
   useMemoir: true,
+  menuConfigured: true,
 });
 
 export const insertDiaryEntrySchema = createInsertSchema(diaryEntries).pick({

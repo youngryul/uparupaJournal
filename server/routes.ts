@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertDiaryEntrySchema, loginSchema, signupSchema } from "@shared/schema";
+import { insertDiaryEntrySchema, insertMemoirEntrySchema, loginSchema, signupSchema, menuSelectionSchema } from "@shared/schema";
 import { hashPassword, comparePassword, generateToken, authMiddleware, type AuthenticatedRequest } from "./auth";
 import { z } from "zod";
 
@@ -74,7 +74,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!user) {
         return res.status(404).json({ message: "사용자를 찾을 수 없습니다" });
       }
-      res.json({ id: user.id, username: user.username });
+      res.json({ 
+        id: user.id, 
+        username: user.username,
+        useDiary: user.useDiary,
+        useMemoir: user.useMemoir
+      });
     } catch (error) {
       console.error("Get user error:", error);
       res.status(500).json({ message: "사용자 정보를 가져오는데 실패했습니다" });
@@ -162,6 +167,116 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(entries);
     } catch (error) {
       res.status(500).json({ message: "Failed to search diary entries" });
+    }
+  });
+
+  // Menu preferences API
+  app.post("/api/auth/update-menu-preferences", authMiddleware, async (req: AuthenticatedRequest, res) => {
+    try {
+      const validatedData = menuSelectionSchema.parse(req.body);
+      const user = await storage.updateUserPreferences(req.userId!, validatedData);
+      if (!user) {
+        return res.status(404).json({ message: "사용자를 찾을 수 없습니다" });
+      }
+      res.json({ 
+        message: "메뉴 설정이 업데이트되었습니다",
+        useDiary: user.useDiary,
+        useMemoir: user.useMemoir
+      });
+    } catch (error) {
+      console.error("Update menu preferences error:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "입력 데이터가 올바르지 않습니다", errors: error.errors });
+      }
+      res.status(500).json({ message: "메뉴 설정 업데이트에 실패했습니다" });
+    }
+  });
+
+  app.get("/api/auth/user-preferences", authMiddleware, async (req: AuthenticatedRequest, res) => {
+    try {
+      const user = await storage.getUser(req.userId!);
+      if (!user) {
+        return res.status(404).json({ message: "사용자를 찾을 수 없습니다" });
+      }
+      res.json({
+        useDiary: user.useDiary,
+        useMemoir: user.useMemoir
+      });
+    } catch (error) {
+      console.error("Get user preferences error:", error);
+      res.status(500).json({ message: "사용자 설정을 가져오는데 실패했습니다" });
+    }
+  });
+
+  // Memoir entries API
+  app.get("/api/memoir-entries", authMiddleware, async (req: AuthenticatedRequest, res) => {
+    try {
+      const entries = await storage.getMemoirEntries(req.userId!);
+      res.json(entries);
+    } catch (error) {
+      res.status(500).json({ message: "회고록을 불러오는데 실패했습니다" });
+    }
+  });
+
+  app.get("/api/memoir-entries/:id", authMiddleware, async (req: AuthenticatedRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const entry = await storage.getMemoirEntry(id);
+      if (!entry) {
+        return res.status(404).json({ message: "회고록을 찾을 수 없습니다" });
+      }
+      res.json(entry);
+    } catch (error) {
+      res.status(500).json({ message: "회고록을 불러오는데 실패했습니다" });
+    }
+  });
+
+  app.post("/api/memoir-entries", authMiddleware, async (req: AuthenticatedRequest, res) => {
+    try {
+      const validatedData = insertMemoirEntrySchema.parse({
+        ...req.body,
+        userId: req.userId
+      });
+      const entry = await storage.createMemoirEntry(validatedData);
+      res.status(201).json(entry);
+    } catch (error) {
+      console.error("Create memoir entry error:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "입력 데이터가 올바르지 않습니다", errors: error.errors });
+      }
+      res.status(500).json({ message: "회고록 저장에 실패했습니다" });
+    }
+  });
+
+  app.put("/api/memoir-entries/:id", authMiddleware, async (req: AuthenticatedRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const validatedData = insertMemoirEntrySchema.omit({ userId: true }).partial().parse(req.body);
+      const entry = await storage.updateMemoirEntry(id, validatedData);
+      if (!entry) {
+        return res.status(404).json({ message: "회고록을 찾을 수 없습니다" });
+      }
+      res.json(entry);
+    } catch (error) {
+      console.error("Update memoir entry error:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "입력 데이터가 올바르지 않습니다", errors: error.errors });
+      }
+      res.status(500).json({ message: "회고록 수정에 실패했습니다" });
+    }
+  });
+
+  app.delete("/api/memoir-entries/:id", authMiddleware, async (req: AuthenticatedRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteMemoirEntry(id);
+      if (!success) {
+        return res.status(404).json({ message: "회고록을 찾을 수 없습니다" });
+      }
+      res.json({ message: "회고록이 삭제되었습니다" });
+    } catch (error) {
+      console.error("Delete memoir entry error:", error);
+      res.status(500).json({ message: "회고록 삭제에 실패했습니다" });
     }
   });
 

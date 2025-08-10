@@ -1,10 +1,13 @@
 import { 
   users, 
-  diaryEntries, 
+  diaryEntries,
+  memoirEntries,
   type User, 
   type InsertUser, 
   type DiaryEntry, 
-  type InsertDiaryEntry 
+  type InsertDiaryEntry,
+  type MemoirEntry,
+  type InsertMemoirEntry,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, like, or, and } from "drizzle-orm";
@@ -13,6 +16,7 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateUserPreferences(id: number, preferences: { useDiary?: boolean; useMemoir?: boolean }): Promise<User | undefined>;
   
   getDiaryEntries(userId: number): Promise<DiaryEntry[]>;
   getDiaryEntry(id: number): Promise<DiaryEntry | undefined>;
@@ -20,13 +24,21 @@ export interface IStorage {
   updateDiaryEntry(id: number, entry: Partial<InsertDiaryEntry>): Promise<DiaryEntry | undefined>;
   deleteDiaryEntry(id: number): Promise<boolean>;
   searchDiaryEntries(query: string, userId: number): Promise<DiaryEntry[]>;
+
+  getMemoirEntries(userId: number): Promise<MemoirEntry[]>;
+  getMemoirEntry(id: number): Promise<MemoirEntry | undefined>;
+  createMemoirEntry(entry: InsertMemoirEntry): Promise<MemoirEntry>;
+  updateMemoirEntry(id: number, entry: Partial<InsertMemoirEntry>): Promise<MemoirEntry | undefined>;
+  deleteMemoirEntry(id: number): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
   private users: User[] = [];
   private diaryEntries: DiaryEntry[] = [];
+  private memoirEntries: MemoirEntry[] = [];
   private nextUserId = 1;
   private nextEntryId = 1;
+  private nextMemoirId = 1;
 
   async getUser(id: number): Promise<User | undefined> {
     return this.users.find(user => user.id === id);
@@ -41,9 +53,21 @@ export class MemStorage implements IStorage {
       id: this.nextUserId++,
       username: insertUser.username,
       password: insertUser.password,
+      useDiary: insertUser.useDiary ?? true,
+      useMemoir: insertUser.useMemoir ?? false,
       createdAt: new Date(),
     };
     this.users.push(user);
+    return user;
+  }
+
+  async updateUserPreferences(id: number, preferences: { useDiary?: boolean; useMemoir?: boolean }): Promise<User | undefined> {
+    const user = this.users.find(u => u.id === id);
+    if (!user) return undefined;
+    
+    if (preferences.useDiary !== undefined) user.useDiary = preferences.useDiary;
+    if (preferences.useMemoir !== undefined) user.useMemoir = preferences.useMemoir;
+    
     return user;
   }
 
@@ -96,6 +120,45 @@ export class MemStorage implements IStorage {
       )
       .sort((a, b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0));
   }
+
+  async getMemoirEntries(userId: number): Promise<MemoirEntry[]> {
+    return this.memoirEntries
+      .filter(entry => entry.userId === userId)
+      .sort((a, b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0));
+  }
+
+  async getMemoirEntry(id: number): Promise<MemoirEntry | undefined> {
+    return this.memoirEntries.find(entry => entry.id === id);
+  }
+
+  async createMemoirEntry(insertEntry: InsertMemoirEntry): Promise<MemoirEntry> {
+    const entry: MemoirEntry = {
+      id: this.nextMemoirId++,
+      userId: insertEntry.userId,
+      title: insertEntry.title,
+      content: insertEntry.content,
+      period: insertEntry.period || null,
+      createdAt: new Date(),
+    };
+    this.memoirEntries.push(entry);
+    return entry;
+  }
+
+  async updateMemoirEntry(id: number, updateEntry: Partial<InsertMemoirEntry>): Promise<MemoirEntry | undefined> {
+    const index = this.memoirEntries.findIndex(entry => entry.id === id);
+    if (index === -1) return undefined;
+    
+    this.memoirEntries[index] = { ...this.memoirEntries[index], ...updateEntry };
+    return this.memoirEntries[index];
+  }
+
+  async deleteMemoirEntry(id: number): Promise<boolean> {
+    const index = this.memoirEntries.findIndex(entry => entry.id === id);
+    if (index === -1) return false;
+    
+    this.memoirEntries.splice(index, 1);
+    return true;
+  }
 }
 
 export class DatabaseStorage implements IStorage {
@@ -115,6 +178,15 @@ export class DatabaseStorage implements IStorage {
       .values(insertUser)
       .returning();
     return user;
+  }
+
+  async updateUserPreferences(id: number, preferences: { useDiary?: boolean; useMemoir?: boolean }): Promise<User | undefined> {
+    const [updated] = await db
+      .update(users)
+      .set(preferences)
+      .where(eq(users.id, id))
+      .returning();
+    return updated || undefined;
   }
 
   async getDiaryEntries(userId: number): Promise<DiaryEntry[]> {
@@ -166,6 +238,41 @@ export class DatabaseStorage implements IStorage {
         )
       )
       .orderBy(desc(diaryEntries.createdAt));
+  }
+
+  async getMemoirEntries(userId: number): Promise<MemoirEntry[]> {
+    return await db
+      .select()
+      .from(memoirEntries)
+      .where(eq(memoirEntries.userId, userId))
+      .orderBy(desc(memoirEntries.createdAt));
+  }
+
+  async getMemoirEntry(id: number): Promise<MemoirEntry | undefined> {
+    const [entry] = await db.select().from(memoirEntries).where(eq(memoirEntries.id, id));
+    return entry || undefined;
+  }
+
+  async createMemoirEntry(insertEntry: InsertMemoirEntry): Promise<MemoirEntry> {
+    const [entry] = await db
+      .insert(memoirEntries)
+      .values(insertEntry)
+      .returning();
+    return entry;
+  }
+
+  async updateMemoirEntry(id: number, updateEntry: Partial<InsertMemoirEntry>): Promise<MemoirEntry | undefined> {
+    const [updated] = await db
+      .update(memoirEntries)
+      .set(updateEntry)
+      .where(eq(memoirEntries.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteMemoirEntry(id: number): Promise<boolean> {
+    const result = await db.delete(memoirEntries).where(eq(memoirEntries.id, id));
+    return (result.rowCount ?? 0) > 0;
   }
 }
 

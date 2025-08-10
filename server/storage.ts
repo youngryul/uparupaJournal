@@ -16,7 +16,7 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-  updateUserPreferences(id: number, preferences: { useDiary?: boolean; useMemoir?: boolean }): Promise<User | undefined>;
+  updateUserPreferences(id: number, preferences: { useDiary?: boolean; useMemoir?: boolean; menuConfigured?: boolean }): Promise<User | undefined>;
   
   getDiaryEntries(userId: number): Promise<DiaryEntry[]>;
   getDiaryEntry(id: number): Promise<DiaryEntry | undefined>;
@@ -53,20 +53,22 @@ export class MemStorage implements IStorage {
       id: this.nextUserId++,
       username: insertUser.username,
       password: insertUser.password,
-      useDiary: insertUser.useDiary ?? true,
+      useDiary: insertUser.useDiary ?? false,
       useMemoir: insertUser.useMemoir ?? false,
+      menuConfigured: insertUser.menuConfigured ?? false,
       createdAt: new Date(),
     };
     this.users.push(user);
     return user;
   }
 
-  async updateUserPreferences(id: number, preferences: { useDiary?: boolean; useMemoir?: boolean }): Promise<User | undefined> {
+  async updateUserPreferences(id: number, preferences: { useDiary?: boolean; useMemoir?: boolean; menuConfigured?: boolean }): Promise<User | undefined> {
     const user = this.users.find(u => u.id === id);
     if (!user) return undefined;
     
     if (preferences.useDiary !== undefined) user.useDiary = preferences.useDiary;
     if (preferences.useMemoir !== undefined) user.useMemoir = preferences.useMemoir;
+    if (preferences.menuConfigured !== undefined) user.menuConfigured = preferences.menuConfigured;
     
     return user;
   }
@@ -180,7 +182,7 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async updateUserPreferences(id: number, preferences: { useDiary?: boolean; useMemoir?: boolean }): Promise<User | undefined> {
+  async updateUserPreferences(id: number, preferences: { useDiary?: boolean; useMemoir?: boolean; menuConfigured?: boolean }): Promise<User | undefined> {
     const [updated] = await db
       .update(users)
       .set(preferences)
@@ -221,7 +223,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteDiaryEntry(id: number): Promise<boolean> {
     const result = await db.delete(diaryEntries).where(eq(diaryEntries.id, id));
-    return (result.rowCount ?? 0) > 0;
+    return result.length > 0;
   }
 
   async searchDiaryEntries(query: string, userId: number): Promise<DiaryEntry[]> {
@@ -272,7 +274,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteMemoirEntry(id: number): Promise<boolean> {
     const result = await db.delete(memoirEntries).where(eq(memoirEntries.id, id));
-    return (result.rowCount ?? 0) > 0;
+    return result.length > 0;
   }
 }
 

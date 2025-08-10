@@ -30,16 +30,16 @@ function Router() {
   const [showMenuSelection, setShowMenuSelection] = useState(false);
 
   // 사용자의 메뉴 설정 확인
-  const { data: userPreferences, isLoading: isPreferencesLoading } = useQuery<{ useDiary?: boolean; useMemoir?: boolean }>({
+  const { data: userPreferences, isLoading: isPreferencesLoading } = useQuery<{ useDiary?: boolean; useMemoir?: boolean; menuConfigured?: boolean }>({
     queryKey: ['/api/auth/user-preferences'],
     enabled: !!user,
   });
 
-  // 사용자가 로그인했지만 메뉴 설정이 없으면 메뉴 선택 화면 표시
+  // 새로 가입한 사용자에게 메뉴 선택 화면 표시
   useEffect(() => {
     if (isAuthenticated && userPreferences && !isPreferencesLoading) {
-      // 메뉴가 둘 다 꺼져있으면 메뉴 선택 페이지 표시
-      if (!userPreferences.useDiary && !userPreferences.useMemoir) {
+      // 메뉴를 아직 설정하지 않은 사용자는 메뉴 선택 페이지 표시
+      if (!userPreferences.menuConfigured) {
         setShowMenuSelection(true);
       }
     }

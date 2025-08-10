@@ -78,7 +78,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         id: user.id, 
         username: user.username,
         useDiary: user.useDiary,
-        useMemoir: user.useMemoir
+        useMemoir: user.useMemoir,
+        menuConfigured: user.menuConfigured
       });
     } catch (error) {
       console.error("Get user error:", error);
@@ -174,14 +175,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/update-menu-preferences", authMiddleware, async (req: AuthenticatedRequest, res) => {
     try {
       const validatedData = menuSelectionSchema.parse(req.body);
-      const user = await storage.updateUserPreferences(req.userId!, validatedData);
+      const user = await storage.updateUserPreferences(req.userId!, {
+        ...validatedData,
+        menuConfigured: true
+      });
       if (!user) {
         return res.status(404).json({ message: "사용자를 찾을 수 없습니다" });
       }
       res.json({ 
         message: "메뉴 설정이 업데이트되었습니다",
         useDiary: user.useDiary,
-        useMemoir: user.useMemoir
+        useMemoir: user.useMemoir,
+        menuConfigured: user.menuConfigured
       });
     } catch (error) {
       console.error("Update menu preferences error:", error);
@@ -200,7 +205,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.json({
         useDiary: user.useDiary,
-        useMemoir: user.useMemoir
+        useMemoir: user.useMemoir,
+        menuConfigured: user.menuConfigured
       });
     } catch (error) {
       console.error("Get user preferences error:", error);

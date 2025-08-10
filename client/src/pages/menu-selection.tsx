@@ -43,7 +43,10 @@ export default function MenuSelectionPage({ onComplete }: MenuSelectionProps) {
       setIsLoading(true);
       
       // 사용자 메뉴 설정 업데이트
-      await apiRequest('POST', '/api/auth/update-menu-preferences', data);
+      const response = await apiRequest('POST', '/api/auth/update-menu-preferences', data);
+      
+      // 쿼리 캐시 무효화하여 새로운 설정 반영
+      window.location.reload();
       
       toast({
         title: "메뉴 설정 완료!",

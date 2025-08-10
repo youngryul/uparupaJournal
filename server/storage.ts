@@ -1,11 +1,14 @@
 import { 
   users, 
   diaryEntries,
+  diaryAnalyses,
   memoirEntries,
   type User, 
   type InsertUser, 
   type DiaryEntry, 
   type InsertDiaryEntry,
+  type DiaryAnalysis,
+  type InsertDiaryAnalysis,
   type MemoirEntry,
   type InsertMemoirEntry,
 } from "@shared/schema";
@@ -24,6 +27,11 @@ export interface IStorage {
   updateDiaryEntry(id: number, entry: Partial<InsertDiaryEntry>): Promise<DiaryEntry | undefined>;
   deleteDiaryEntry(id: number): Promise<boolean>;
   searchDiaryEntries(query: string, userId: number): Promise<DiaryEntry[]>;
+  
+  getDiaryAnalysis(diaryEntryId: number): Promise<DiaryAnalysis | undefined>;
+  createDiaryAnalysis(analysis: InsertDiaryAnalysis): Promise<DiaryAnalysis>;
+  updateDiaryAnalysis(id: number, analysis: Partial<InsertDiaryAnalysis>): Promise<DiaryAnalysis | undefined>;
+  deleteDiaryAnalysis(diaryEntryId: number): Promise<boolean>;
 
   getMemoirEntries(userId: number): Promise<MemoirEntry[]>;
   getMemoirEntry(id: number): Promise<MemoirEntry | undefined>;
@@ -35,9 +43,11 @@ export interface IStorage {
 export class MemStorage implements IStorage {
   private users: User[] = [];
   private diaryEntries: DiaryEntry[] = [];
+  private diaryAnalyses: DiaryAnalysis[] = [];
   private memoirEntries: MemoirEntry[] = [];
   private nextUserId = 1;
   private nextEntryId = 1;
+  private nextAnalysisId = 1;
   private nextMemoirId = 1;
 
   async getUser(id: number): Promise<User | undefined> {
@@ -121,6 +131,42 @@ export class MemStorage implements IStorage {
          entry.emotion.toLowerCase().includes(lowerQuery))
       )
       .sort((a, b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0));
+  }
+
+  async getDiaryAnalysis(diaryEntryId: number): Promise<DiaryAnalysis | undefined> {
+    return this.diaryAnalyses.find(analysis => analysis.diaryEntryId === diaryEntryId);
+  }
+
+  async createDiaryAnalysis(insertAnalysis: InsertDiaryAnalysis): Promise<DiaryAnalysis> {
+    const analysis: DiaryAnalysis = {
+      id: this.nextAnalysisId++,
+      diaryEntryId: insertAnalysis.diaryEntryId,
+      emotionAnalysis: insertAnalysis.emotionAnalysis || null,
+      sentimentScore: insertAnalysis.sentimentScore || null,
+      themes: insertAnalysis.themes || null,
+      keywords: insertAnalysis.keywords || null,
+      suggestions: insertAnalysis.suggestions || null,
+      summary: insertAnalysis.summary || null,
+      createdAt: new Date(),
+    };
+    this.diaryAnalyses.push(analysis);
+    return analysis;
+  }
+
+  async updateDiaryAnalysis(id: number, updateAnalysis: Partial<InsertDiaryAnalysis>): Promise<DiaryAnalysis | undefined> {
+    const index = this.diaryAnalyses.findIndex(analysis => analysis.id === id);
+    if (index === -1) return undefined;
+    
+    this.diaryAnalyses[index] = { ...this.diaryAnalyses[index], ...updateAnalysis };
+    return this.diaryAnalyses[index];
+  }
+
+  async deleteDiaryAnalysis(diaryEntryId: number): Promise<boolean> {
+    const index = this.diaryAnalyses.findIndex(analysis => analysis.diaryEntryId === diaryEntryId);
+    if (index === -1) return false;
+    
+    this.diaryAnalyses.splice(index, 1);
+    return true;
   }
 
   async getMemoirEntries(userId: number): Promise<MemoirEntry[]> {
@@ -274,6 +320,33 @@ export class DatabaseStorage implements IStorage {
 
   async deleteMemoirEntry(id: number): Promise<boolean> {
     const result = await db.delete(memoirEntries).where(eq(memoirEntries.id, id));
+    return result.length > 0;
+  }
+
+  async getDiaryAnalysis(diaryEntryId: number): Promise<DiaryAnalysis | undefined> {
+    const [analysis] = await db.select().from(diaryAnalyses).where(eq(diaryAnalyses.diaryEntryId, diaryEntryId));
+    return analysis || undefined;
+  }
+
+  async createDiaryAnalysis(insertAnalysis: InsertDiaryAnalysis): Promise<DiaryAnalysis> {
+    const [analysis] = await db
+      .insert(diaryAnalyses)
+      .values(insertAnalysis)
+      .returning();
+    return analysis;
+  }
+
+  async updateDiaryAnalysis(id: number, updateAnalysis: Partial<InsertDiaryAnalysis>): Promise<DiaryAnalysis | undefined> {
+    const [updated] = await db
+      .update(diaryAnalyses)
+      .set(updateAnalysis)
+      .where(eq(diaryAnalyses.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteDiaryAnalysis(diaryEntryId: number): Promise<boolean> {
+    const result = await db.delete(diaryAnalyses).where(eq(diaryAnalyses.diaryEntryId, diaryEntryId));
     return result.length > 0;
   }
 }

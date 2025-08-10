@@ -79,7 +79,7 @@ export default function SignupPage() {
                         <Input
                           {...field}
                           placeholder="3-20자 사용자명"
-                          className="pl-10 p-4 border-2 border-sky-light/50 rounded-2xl focus:border-sky-light bg-sky-light/5 text-sky-800"
+                          className="pl-12 pr-4 py-4 border-2 border-sky-light/50 rounded-2xl focus:border-sky-light bg-sky-light/5 text-sky-800"
                         />
                       </div>
                     </FormControl>
@@ -101,7 +101,7 @@ export default function SignupPage() {
                           {...field}
                           type="password"
                           placeholder="6자 이상 비밀번호"
-                          className="pl-10 p-4 border-2 border-sky-light/50 rounded-2xl focus:border-sky-light bg-sky-light/5 text-sky-800"
+                          className="pl-12 pr-4 py-4 border-2 border-sky-light/50 rounded-2xl focus:border-sky-light bg-sky-light/5 text-sky-800"
                         />
                       </div>
                     </FormControl>
@@ -123,7 +123,7 @@ export default function SignupPage() {
                           {...field}
                           type="password"
                           placeholder="비밀번호를 다시 입력하세요"
-                          className="pl-10 p-4 border-2 border-sky-light/50 rounded-2xl focus:border-sky-light bg-sky-light/5 text-sky-800"
+                          className="pl-12 pr-4 py-4 border-2 border-sky-light/50 rounded-2xl focus:border-sky-light bg-sky-light/5 text-sky-800"
                         />
                       </div>
                     </FormControl>

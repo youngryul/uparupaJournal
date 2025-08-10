@@ -73,7 +73,7 @@ export default function LoginPage() {
                         <Input
                           {...field}
                           placeholder="사용자명을 입력하세요"
-                          className="pl-10 p-4 border-2 border-sky-light/50 rounded-2xl focus:border-sky-light bg-sky-light/5 text-sky-800"
+                          className="pl-12 pr-4 py-4 border-2 border-sky-light/50 rounded-2xl focus:border-sky-light bg-sky-light/5 text-sky-800"
                         />
                       </div>
                     </FormControl>
@@ -95,7 +95,7 @@ export default function LoginPage() {
                           {...field}
                           type="password"
                           placeholder="비밀번호를 입력하세요"
-                          className="pl-10 p-4 border-2 border-sky-light/50 rounded-2xl focus:border-sky-light bg-sky-light/5 text-sky-800"
+                          className="pl-12 pr-4 py-4 border-2 border-sky-light/50 rounded-2xl focus:border-sky-light bg-sky-light/5 text-sky-800"
                         />
                       </div>
                     </FormControl>

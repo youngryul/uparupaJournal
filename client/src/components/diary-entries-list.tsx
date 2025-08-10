@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { DiaryAnalysisComponent } from "./diary-analysis";
 import type { DiaryEntry } from "@shared/schema";
 
 interface DiaryEntriesListProps {
@@ -122,55 +123,57 @@ export function DiaryEntriesList({ entries, isLoading, onEntryUpdated }: DiaryEn
             {entries.map((entry) => (
               <div
                 key={entry.id}
-                className={`
-                  bg-gradient-to-r from-sky-light/10 to-pink-soft/10 
-                  rounded-2xl p-6 border-2 border-sky-light/30 
-                  hover:border-sky-light/50 transition-all cursor-pointer group
-                `}
+                className="space-y-4"
               >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center space-x-4">
-                    <div>
-                      <h3 className="font-semibold text-sky-800 group-hover:text-sky-600 transition-colors">
-                        {formatDate(entry.date)}
-                      </h3>
-                      <p className="text-sm text-sky-600 flex items-center space-x-2">
-                        <span>{getEmotionLabel(entry.emotion)}</span>
-                        <span>{getEmotionEmoji(entry.emotion)}</span>
-                      </p>
+                <div className="bg-gradient-to-r from-sky-light/10 to-pink-soft/10 rounded-2xl p-6 border-2 border-sky-light/30 hover:border-sky-light/50 transition-all cursor-pointer group">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center space-x-4">
+                      <div>
+                        <h3 className="font-semibold text-sky-800 group-hover:text-sky-600 transition-colors">
+                          {formatDate(entry.date)}
+                        </h3>
+                        <p className="text-sm text-sky-600 flex items-center space-x-2">
+                          <span>{getEmotionLabel(entry.emotion)}</span>
+                          <span>{getEmotionEmoji(entry.emotion)}</span>
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="w-8 h-8 bg-sky-light/30 rounded-full hover:bg-sky-light/50"
+                      >
+                        <Edit className="h-4 w-4 text-sky-700" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => deleteMutation.mutate(entry.id)}
+                        disabled={deleteMutation.isPending}
+                        className="w-8 h-8 bg-coral-soft/30 rounded-full hover:bg-coral-soft/50"
+                        data-testid={`button-delete-${entry.id}`}
+                      >
+                        <Trash2 className="h-4 w-4 text-red-600" />
+                      </Button>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="w-8 h-8 bg-sky-light/30 rounded-full hover:bg-sky-light/50"
-                    >
-                      <Edit className="h-4 w-4 text-sky-700" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => deleteMutation.mutate(entry.id)}
-                      disabled={deleteMutation.isPending}
-                      className="w-8 h-8 bg-coral-soft/30 rounded-full hover:bg-coral-soft/50"
-                    >
-                      <Trash2 className="h-4 w-4 text-red-600" />
-                    </Button>
+                  
+                  <p className="text-sky-700 line-clamp-3 mb-4" data-testid={`text-content-${entry.id}`}>
+                    {entry.content}
+                  </p>
+                  
+                  <div className="flex items-center justify-between text-sm text-sky-600">
+                    <span>{entry.createdAt ? new Date(entry.createdAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) : '시간'}에 작성</span>
+                    <span className="flex items-center space-x-1">
+                      <Heart className="h-4 w-4 text-pink-500" />
+                      <span>♡</span>
+                    </span>
                   </div>
                 </div>
                 
-                <p className="text-sky-700 line-clamp-3 mb-4">
-                  {entry.content}
-                </p>
-                
-                <div className="flex items-center justify-between text-sm text-sky-600">
-                  <span>{new Date(entry.createdAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}에 작성</span>
-                  <span className="flex items-center space-x-1">
-                    <Heart className="h-4 w-4 text-pink-500" />
-                    <span>♡</span>
-                  </span>
-                </div>
+                {/* AI 분석 컴포넌트 */}
+                <DiaryAnalysisComponent diaryEntry={entry} />
               </div>
             ))}
           </div>

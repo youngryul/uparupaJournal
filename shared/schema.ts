@@ -41,6 +41,18 @@ export const memoirEntries = pgTable("memoir_entries", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const diaryAnalyses = pgTable("diary_analyses", {
+  id: serial("id").primaryKey(),
+  diaryEntryId: integer("diary_entry_id").notNull().references(() => diaryEntries.id),
+  emotionAnalysis: jsonb("emotion_analysis"), // { primary: string, secondary: string[], confidence: number }
+  sentimentScore: integer("sentiment_score"), // -100 to 100
+  themes: text("themes").array(), // 주요 주제들
+  keywords: text("keywords").array(), // 핵심 키워드
+  suggestions: text("suggestions"), // AI 제안사항
+  summary: text("summary"), // 일기 요약
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
@@ -61,6 +73,16 @@ export const insertMemoirEntrySchema = createInsertSchema(memoirEntries).pick({
   title: true,
   content: true,
   period: true,
+});
+
+export const insertDiaryAnalysisSchema = createInsertSchema(diaryAnalyses).pick({
+  diaryEntryId: true,
+  emotionAnalysis: true,
+  sentimentScore: true,
+  themes: true,
+  keywords: true,
+  suggestions: true,
+  summary: true,
 });
 
 export const loginSchema = z.object({
@@ -88,6 +110,8 @@ export type InsertDiaryEntry = z.infer<typeof insertDiaryEntrySchema>;
 export type DiaryEntry = typeof diaryEntries.$inferSelect;
 export type InsertMemoirEntry = z.infer<typeof insertMemoirEntrySchema>;
 export type MemoirEntry = typeof memoirEntries.$inferSelect;
+export type InsertDiaryAnalysis = z.infer<typeof insertDiaryAnalysisSchema>;
+export type DiaryAnalysis = typeof diaryAnalyses.$inferSelect;
 export type LoginData = z.infer<typeof loginSchema>;
 export type SignupData = z.infer<typeof signupSchema>;
 export type MenuSelectionData = z.infer<typeof menuSelectionSchema>;

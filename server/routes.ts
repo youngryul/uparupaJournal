@@ -1,8 +1,9 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertDiaryEntrySchema, insertMemoirEntrySchema, loginSchema, signupSchema, menuSelectionSchema } from "@shared/schema";
+import { insertDiaryEntrySchema, insertDiaryAnalysisSchema, insertMemoirEntrySchema, loginSchema, signupSchema, menuSelectionSchema } from "@shared/schema";
 import { hashPassword, comparePassword, generateToken, authMiddleware, type AuthenticatedRequest } from "./auth";
+import { analyzeDiary } from "./ai-analysis";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -168,6 +169,133 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(entries);
     } catch (error) {
       res.status(500).json({ message: "Failed to search diary entries" });
+    }
+  });
+
+  // AI Analysis Routes
+  // Get analysis for a diary entry
+  app.get("/api/diary-entries/:id/analysis", authMiddleware, async (req: AuthenticatedRequest, res) => {
+    try {
+      const diaryEntryId = parseInt(req.params.id);
+      
+      // Verify diary entry belongs to user
+      const diaryEntry = await storage.getDiaryEntry(diaryEntryId);
+      if (!diaryEntry || diaryEntry.userId !== req.userId!) {
+        return res.status(404).json({ message: "일기를 찾을 수 없습니다" });
+      }
+
+      const analysis = await storage.getDiaryAnalysis(diaryEntryId);
+      if (!analysis) {
+        return res.status(404).json({ message: "분석 결과를 찾을 수 없습니다" });
+      }
+
+      res.json(analysis);
+    } catch (error) {
+      console.error("Get analysis error:", error);
+      res.status(500).json({ message: "분석 결과를 가져오는데 실패했습니다" });
+    }
+  });
+
+  // Create AI analysis for a diary entry
+  app.post("/api/diary-entries/:id/analysis", authMiddleware, async (req: AuthenticatedRequest, res) => {
+    try {
+      const diaryEntryId = parseInt(req.params.id);
+      
+      // Verify diary entry belongs to user
+      const diaryEntry = await storage.getDiaryEntry(diaryEntryId);
+      if (!diaryEntry || diaryEntry.userId !== req.userId!) {
+        return res.status(404).json({ message: "일기를 찾을 수 없습니다" });
+      }
+
+      // Check if analysis already exists
+      const existingAnalysis = await storage.getDiaryAnalysis(diaryEntryId);
+      if (existingAnalysis) {
+        return res.status(409).json({ message: "이미 분석이 완료된 일기입니다", analysis: existingAnalysis });
+      }
+
+      // Perform AI analysis
+      const aiResult = await analyzeDiary(diaryEntry.content, diaryEntry.emotion);
+      
+      // Save analysis to database
+      const analysisData = {
+        diaryEntryId,
+        emotionAnalysis: aiResult.emotionAnalysis,
+        sentimentScore: aiResult.sentimentScore,
+        themes: aiResult.themes,
+        keywords: aiResult.keywords,
+        suggestions: aiResult.suggestions,
+        summary: aiResult.summary,
+      };
+
+      const analysis = await storage.createDiaryAnalysis(analysisData);
+      res.status(201).json(analysis);
+    } catch (error) {
+      console.error("AI analysis error:", error);
+      res.status(500).json({ message: "AI 분석 중 오류가 발생했습니다" });
+    }
+  });
+
+  // Regenerate analysis for a diary entry
+  app.put("/api/diary-entries/:id/analysis", authMiddleware, async (req: AuthenticatedRequest, res) => {
+    try {
+      const diaryEntryId = parseInt(req.params.id);
+      
+      // Verify diary entry belongs to user
+      const diaryEntry = await storage.getDiaryEntry(diaryEntryId);
+      if (!diaryEntry || diaryEntry.userId !== req.userId!) {
+        return res.status(404).json({ message: "일기를 찾을 수 없습니다" });
+      }
+
+      // Get existing analysis
+      const existingAnalysis = await storage.getDiaryAnalysis(diaryEntryId);
+      if (!existingAnalysis) {
+        return res.status(404).json({ message: "기존 분석 결과를 찾을 수 없습니다" });
+      }
+
+      // Perform new AI analysis
+      const aiResult = await analyzeDiary(diaryEntry.content, diaryEntry.emotion);
+      
+      // Update analysis in database
+      const updatedAnalysis = await storage.updateDiaryAnalysis(existingAnalysis.id, {
+        emotionAnalysis: aiResult.emotionAnalysis,
+        sentimentScore: aiResult.sentimentScore,
+        themes: aiResult.themes,
+        keywords: aiResult.keywords,
+        suggestions: aiResult.suggestions,
+        summary: aiResult.summary,
+      });
+
+      if (!updatedAnalysis) {
+        return res.status(404).json({ message: "분석 결과를 업데이트할 수 없습니다" });
+      }
+
+      res.json(updatedAnalysis);
+    } catch (error) {
+      console.error("AI re-analysis error:", error);
+      res.status(500).json({ message: "AI 분석 재생성 중 오류가 발생했습니다" });
+    }
+  });
+
+  // Delete analysis for a diary entry
+  app.delete("/api/diary-entries/:id/analysis", authMiddleware, async (req: AuthenticatedRequest, res) => {
+    try {
+      const diaryEntryId = parseInt(req.params.id);
+      
+      // Verify diary entry belongs to user
+      const diaryEntry = await storage.getDiaryEntry(diaryEntryId);
+      if (!diaryEntry || diaryEntry.userId !== req.userId!) {
+        return res.status(404).json({ message: "일기를 찾을 수 없습니다" });
+      }
+
+      const success = await storage.deleteDiaryAnalysis(diaryEntryId);
+      if (!success) {
+        return res.status(404).json({ message: "삭제할 분석 결과를 찾을 수 없습니다" });
+      }
+
+      res.json({ message: "분석 결과가 삭제되었습니다" });
+    } catch (error) {
+      console.error("Delete analysis error:", error);
+      res.status(500).json({ message: "분석 결과 삭제에 실패했습니다" });
     }
   });
 

@@ -32,7 +32,7 @@ export default function SignupPage() {
       await signup(data);
       toast({
         title: "회원가입 완료! 🎉",
-        description: "우파루파 일기장에 오신 것을 환영합니다!",
+        description: "우파루파에 오신 것을 환영합니다!",
       });
       // 회원가입 성공 후 메인 페이지로 리다이렉트
       setTimeout(() => {
@@ -57,7 +57,7 @@ export default function SignupPage() {
             🌸
           </div>
           <CardTitle className="text-2xl font-bold text-sky-800">
-            우파루파 일기장
+            우파루파
           </CardTitle>
           <p className="text-sky-600 text-sm">
             새로운 계정을 만들어보세요

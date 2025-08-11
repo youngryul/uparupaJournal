@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PWA 아이콘 생성기</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .icon-preview {
+            display: inline-block;
+            margin: 10px;
+            text-align: center;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .icon-preview img {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .download-btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .download-btn:hover {
+            background: #2563eb;
+        }
+        h1 {
+            color: #1f2937;
+            text-align: center;
+        }
+        .description {
+            text-align: center;
+            color: #6b7280;
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🌸 Uparupa Journal PWA 아이콘 생성기</h1>
+    <p class="description">아래 아이콘들을 우클릭하여 "이미지 저장"으로 다운로드하거나, 다운로드 버튼을 클릭하세요.</p>
+    
+    <div id="iconContainer"></div>
+
+    <script>
+        const svgContent = `<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 배경 원 -->
+  <circle cx="256" cy="256" r="256" fill="#3B82F6"/>
+  
+  <!-- 일기장 -->
+  <rect x="120" y="140" width="272" height="232" rx="16" fill="white" stroke="#1E40AF" stroke-width="8"/>
+  
+  <!-- 일기장 바인딩 -->
+  <rect x="120" y="140" width="40" height="232" fill="#1E40AF"/>
+  
+  <!-- 일기장 줄들 -->
+  <line x1="180" y1="180" x2="380" y2="180" stroke="#6B7280" stroke-width="3" stroke-linecap="round"/>
+  <line x1="180" y1="200" x2="380" y2="200" stroke="#6B7280" stroke-width="3" stroke-linecap="round"/>
+  <line x1="180" y1="220" x2="380" y2="220" stroke="#6B7280" stroke-width="3" stroke-linecap="round"/>
+  <line x1="180" y1="240" x2="380" y2="240" stroke="#6B7280" stroke-width="3" stroke-linecap="round"/>
+  <line x1="180" y1="260" x2="380" y2="260" stroke="#6B7280" stroke-width="3" stroke-linecap="round"/>
+  <line x1="180" y1="280" x2="380" y2="280" stroke="#6B7280" stroke-width="3" stroke-linecap="round"/>
+  <line x1="180" y1="300" x2="380" y2="300" stroke="#6B7280" stroke-width="3" stroke-linecap="round"/>
+  <line x1="180" y1="320" x2="380" y2="320" stroke="#6B7280" stroke-width="3" stroke-linecap="round"/>
+  <line x1="180" y1="340" x2="380" y2="340" stroke="#6B7280" stroke-width="3" stroke-linecap="round"/>
+  
+  <!-- 꽃 -->
+  <circle cx="320" cy="200" r="12" fill="#F59E0B"/>
+  <circle cx="330" cy="190" r="8" fill="#F59E0B"/>
+  <circle cx="310" cy="190" r="8" fill="#F59E0B"/>
+  <circle cx="320" cy="180" r="8" fill="#F59E0B"/>
+  <circle cx="330" cy="210" r="8" fill="#F59E0B"/>
+  <circle cx="310" cy="210" r="8" fill="#F59E0B"/>
+  <circle cx="300" cy="200" r="8" fill="#F59E0B"/>
+  <circle cx="340" cy="200" r="8" fill="#F59E0B"/>
+  
+  <!-- 꽃 중앙 -->
+  <circle cx="320" cy="200" r="6" fill="#DC2626"/>
+  
+  <!-- 꽃 줄기 -->
+  <line x1="320" y1="212" x2="320" y2="240" stroke="#16A34A" stroke-width="4" stroke-linecap="round"/>
+  
+  <!-- 잎 -->
+  <ellipse cx="310" cy="230" rx="8" ry="4" fill="#16A34A" transform="rotate(-30 310 230)"/>
+  <ellipse cx="330" cy="225" rx="8" ry="4" fill="#16A34A" transform="rotate(30 330 225)"/>
+  
+  <!-- 감정 표현 (웃는 얼굴) -->
+  <circle cx="200" cy="200" r="20" fill="#FEF3C7"/>
+  <circle cx="195" cy="195" r="3" fill="#374151"/>
+  <circle cx="205" cy="195" r="3" fill="#374151"/>
+  <path d="M 190 210 Q 200 220 210 210" stroke="#374151" stroke-width="3" fill="none" stroke-linecap="round"/>
+</svg>`;
+
+        const sizes = [
+            { size: 16, name: 'icon-16x16.png' },
+            { size: 32, name: 'icon-32x32.png' },
+            { size: 192, name: 'icon-192x192.png' },
+            { size: 512, name: 'icon-512x512.png' }
+        ];
+
+        function createIcon(size, filename) {
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            
+            const img = new Image();
+            img.onload = function() {
+                ctx.drawImage(img, 0, 0, size, size);
+                
+                const iconDiv = document.createElement('div');
+                iconDiv.className = 'icon-preview';
+                
+                const imgElement = document.createElement('img');
+                imgElement.src = canvas.toDataURL('image/png');
+                imgElement.alt = `${size}x${size} 아이콘`;
+                imgElement.style.width = '100px';
+                imgElement.style.height = '100px';
+                
+                const sizeText = document.createElement('p');
+                sizeText.textContent = `${size}x${size}`;
+                sizeText.style.margin = '10px 0 5px 0';
+                sizeText.style.fontWeight = 'bold';
+                
+                const downloadBtn = document.createElement('button');
+                downloadBtn.className = 'download-btn';
+                downloadBtn.textContent = '다운로드';
+                downloadBtn.onclick = function() {
+                    const link = document.createElement('a');
+                    link.download = filename;
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                };
+                
+                iconDiv.appendChild(imgElement);
+                iconDiv.appendChild(sizeText);
+                iconDiv.appendChild(downloadBtn);
+                
+                document.getElementById('iconContainer').appendChild(iconDiv);
+            };
+            
+            const svgBlob = new Blob([svgContent], { type: 'image/svg+xml' });
+            const url = URL.createObjectURL(svgBlob);
+            img.src = url;
+        }
+
+        // 모든 크기의 아이콘 생성
+        sizes.forEach(icon => {
+            createIcon(icon.size, icon.name);
+        });
+    </script>
+</body>
+</html>

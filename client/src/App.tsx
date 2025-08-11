@@ -11,6 +11,7 @@ import LoginPage from "@/pages/login";
 import SignupPage from "@/pages/signup";
 import MenuSelectionPage from "@/pages/menu-selection";
 import { Navigation } from "@/components/navigation";
+import { PWAInstallPrompt } from "@/components/pwa-install-prompt";
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
@@ -92,6 +93,9 @@ function Router() {
       
       {/* 네비게이션은 로그인한 사용자에게만 표시 */}
       {isAuthenticated && !showMenuSelection && <Navigation />}
+      
+      {/* PWA 설치 프롬프트 */}
+      <PWAInstallPrompt />
     </div>
   );
 }

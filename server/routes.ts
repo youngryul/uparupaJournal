@@ -66,6 +66,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const token = generateToken(user.id);
+      console.log("Login successful for user:", { id: user.id, username: user.username });
       res.json({ 
         message: "로그인이 완료되었습니다",
         token,
@@ -82,10 +83,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/auth/me", authMiddleware, async (req: AuthenticatedRequest, res) => {
     try {
+      console.log("Getting user info for userId:", req.userId);
       const user = await storage.getUser(req.userId!);
       if (!user) {
+        console.log("User not found for userId:", req.userId);
         return res.status(404).json({ message: "사용자를 찾을 수 없습니다" });
       }
+      console.log("Found user:", { id: user.id, username: user.username });
       res.json({ 
         id: user.id, 
         username: user.username,

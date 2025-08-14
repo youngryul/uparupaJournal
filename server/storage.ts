@@ -7,6 +7,9 @@ import {
   activityRecords,
   activities,
   userSettings,
+  achievements,
+  userAchievements,
+  userStats,
   type User, 
   type InsertUser, 
   type DiaryEntry, 
@@ -23,6 +26,12 @@ import {
   type InsertActivity,
   type UserSettings,
   type InsertUserSettings,
+  type Achievement,
+  type InsertAchievement,
+  type UserAchievement,
+  type InsertUserAchievement,
+  type UserStats,
+  type InsertUserStats,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, like, or, and, sql } from "drizzle-orm";
@@ -76,6 +85,18 @@ export interface IStorage {
   getUserSettings(userId: number): Promise<UserSettings | undefined>;
   createUserSettings(settings: InsertUserSettings): Promise<UserSettings>;
   updateUserSettings(userId: number, settings: Partial<InsertUserSettings>): Promise<UserSettings | undefined>;
+
+  // 게임화 - 업적 시스템
+  getAchievements(): Promise<Achievement[]>;
+  getUserAchievements(userId: number): Promise<(UserAchievement & { achievement: Achievement })[]>;
+  createUserAchievement(userAchievement: InsertUserAchievement): Promise<UserAchievement>;
+  updateUserAchievementProgress(userId: number, achievementId: number, progress: number): Promise<UserAchievement | undefined>;
+  
+  // 게임화 - 사용자 통계
+  getUserStats(userId: number): Promise<UserStats | undefined>;
+  createUserStats(stats: InsertUserStats): Promise<UserStats>;
+  updateUserStats(userId: number, stats: Partial<InsertUserStats>): Promise<UserStats | undefined>;
+  checkAndUnlockAchievements(userId: number): Promise<Achievement[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -418,6 +439,39 @@ export class MemStorage implements IStorage {
     this.userSettings[index] = { ...this.userSettings[index], ...updateSettings };
     return this.userSettings[index];
   }
+
+  // 게임화 - 업적 시스템 (MemStorage 구현)
+  async getAchievements(): Promise<Achievement[]> {
+    return Promise.resolve([]);
+  }
+
+  async getUserAchievements(userId: number): Promise<(UserAchievement & { achievement: Achievement })[]> {
+    return Promise.resolve([]);
+  }
+
+  async createUserAchievement(userAchievement: InsertUserAchievement): Promise<UserAchievement> {
+    return Promise.resolve({} as UserAchievement);
+  }
+
+  async updateUserAchievementProgress(userId: number, achievementId: number, progress: number): Promise<UserAchievement | undefined> {
+    return Promise.resolve(undefined);
+  }
+
+  async getUserStats(userId: number): Promise<UserStats | undefined> {
+    return Promise.resolve(undefined);
+  }
+
+  async createUserStats(stats: InsertUserStats): Promise<UserStats> {
+    return Promise.resolve({} as UserStats);
+  }
+
+  async updateUserStats(userId: number, stats: Partial<InsertUserStats>): Promise<UserStats | undefined> {
+    return Promise.resolve(undefined);
+  }
+
+  async checkAndUnlockAchievements(userId: number): Promise<Achievement[]> {
+    return Promise.resolve([]);
+  }
 }
 
 export class DatabaseStorage implements IStorage {
@@ -707,27 +761,245 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return updated || undefined;
   }
+
+  // 게임화 - 업적 시스템
+  async getAchievements(): Promise<Achievement[]> {
+    return await db.select().from(achievements).where(eq(achievements.isActive, true)).orderBy(achievements.points);
+  }
+
+  async getUserAchievements(userId: number): Promise<(UserAchievement & { achievement: Achievement })[]> {
+    const results = await db.select()
+      .from(userAchievements)
+      .leftJoin(achievements, eq(userAchievements.achievementId, achievements.id))
+      .where(eq(userAchievements.userId, userId))
+      .orderBy(desc(userAchievements.unlockedAt));
+    
+    return results.map(result => ({
+      ...result.user_achievements,
+      achievement: result.achievements!
+    }));
+  }
+
+  async createUserAchievement(userAchievement: InsertUserAchievement): Promise<UserAchievement> {
+    const [result] = await db.insert(userAchievements).values(userAchievement).returning();
+    return result;
+  }
+
+  async updateUserAchievementProgress(userId: number, achievementId: number, progress: number): Promise<UserAchievement | undefined> {
+    const [result] = await db.update(userAchievements)
+      .set({ progress, isCompleted: progress >= 100 })
+      .where(and(eq(userAchievements.userId, userId), eq(userAchievements.achievementId, achievementId)))
+      .returning();
+    return result;
+  }
+
+  // 게임화 - 사용자 통계
+  async getUserStats(userId: number): Promise<UserStats | undefined> {
+    const [result] = await db.select().from(userStats).where(eq(userStats.userId, userId));
+    return result;
+  }
+
+  async createUserStats(stats: InsertUserStats): Promise<UserStats> {
+    const [result] = await db.insert(userStats).values(stats).returning();
+    return result;
+  }
+
+  async updateUserStats(userId: number, stats: Partial<InsertUserStats>): Promise<UserStats | undefined> {
+    const [result] = await db.update(userStats)
+      .set({ ...stats, updatedAt: new Date() })
+      .where(eq(userStats.userId, userId))
+      .returning();
+    return result;
+  }
+
+  async checkAndUnlockAchievements(userId: number): Promise<Achievement[]> {
+    const userStatsData = await this.getUserStats(userId);
+    if (!userStatsData) return [];
+
+    const achievementsList = await this.getAchievements();
+    const userAchievementsList = await this.getUserAchievements(userId);
+    const unlockedIds = userAchievementsList.map(ua => ua.achievementId);
+    
+    const newlyUnlocked: Achievement[] = [];
+
+    for (const achievement of achievementsList) {
+      if (unlockedIds.includes(achievement.id)) continue;
+
+      const condition = achievement.condition as any;
+      let isUnlocked = false;
+
+      switch (achievement.type) {
+        case 'diary':
+          if (condition.count && (userStatsData.totalDiaryEntries || 0) >= condition.count) {
+            isUnlocked = true;
+          }
+          break;
+        case 'memoir':
+          if (condition.count && (userStatsData.totalMemoirEntries || 0) >= condition.count) {
+            isUnlocked = true;
+          }
+          break;
+        case 'record':
+          if (condition.count && (userStatsData.totalEmotionRecords || 0) >= condition.count) {
+            isUnlocked = true;
+          }
+          break;
+        case 'streak':
+          if (condition.days && (userStatsData.currentStreak || 0) >= condition.days) {
+            isUnlocked = true;
+          }
+          break;
+      }
+
+      if (isUnlocked) {
+        await this.createUserAchievement({
+          userId,
+          achievementId: achievement.id,
+          isCompleted: true,
+        });
+        
+        // 포인트 추가
+        await this.updateUserStats(userId, {
+          totalPoints: (userStatsData.totalPoints || 0) + (achievement.points || 0),
+        });
+        
+        newlyUnlocked.push(achievement);
+      }
+    }
+
+    return newlyUnlocked;
+  }
+
+  // 업적 초기화 (첫 실행 시)
+  async initializeAchievements(): Promise<void> {
+    const existingAchievements = await db.select().from(achievements);
+    if (existingAchievements.length > 0) return;
+
+    const defaultAchievements = [
+      {
+        name: "첫 번째 일기",
+        description: "첫 번째 일기를 작성했습니다",
+        icon: "🌱",
+        type: "diary",
+        condition: { count: 1 },
+        points: 10,
+        rarity: "common"
+      },
+      {
+        name: "일기 애호가",
+        description: "일기를 10번 작성했습니다",
+        icon: "📝",
+        type: "diary",
+        condition: { count: 10 },
+        points: 50,
+        rarity: "rare"
+      },
+      {
+        name: "일기 마스터",
+        description: "일기를 50번 작성했습니다",
+        icon: "📚",
+        type: "diary",
+        condition: { count: 50 },
+        points: 200,
+        rarity: "epic"
+      },
+      {
+        name: "첫 번째 회고",
+        description: "첫 번째 회고록을 작성했습니다",
+        icon: "🎯",
+        type: "memoir",
+        condition: { count: 1 },
+        points: 15,
+        rarity: "common"
+      },
+      {
+        name: "회고의 달인",
+        description: "회고록을 20번 작성했습니다",
+        icon: "🏆",
+        type: "memoir",
+        condition: { count: 20 },
+        points: 150,
+        rarity: "epic"
+      },
+      {
+        name: "감정 기록자",
+        description: "첫 번째 감정을 기록했습니다",
+        icon: "💙",
+        type: "record",
+        condition: { count: 1 },
+        points: 10,
+        rarity: "common"
+      },
+      {
+        name: "감정 추적자",
+        description: "감정을 30번 기록했습니다",
+        icon: "📊",
+        type: "record",
+        condition: { count: 30 },
+        points: 100,
+        rarity: "rare"
+      },
+      {
+        name: "3일 연속",
+        description: "3일 연속으로 기록했습니다",
+        icon: "🔥",
+        type: "streak",
+        condition: { days: 3 },
+        points: 30,
+        rarity: "rare"
+      },
+      {
+        name: "일주일 챌린지",
+        description: "7일 연속으로 기록했습니다",
+        icon: "⚡",
+        type: "streak",
+        condition: { days: 7 },
+        points: 100,
+        rarity: "epic"
+      },
+      {
+        name: "한 달 챌린지",
+        description: "30일 연속으로 기록했습니다",
+        icon: "👑",
+        type: "streak",
+        condition: { days: 30 },
+        points: 500,
+        rarity: "legendary"
+      }
+    ];
+
+    try {
+      for (const achievement of defaultAchievements) {
+        await db.insert(achievements).values(achievement).onConflictDoNothing();
+      }
+    } catch (error) {
+      console.error('Failed to initialize achievements:', error);
+    }
+  }
 }
 
 // Use DatabaseStorage with Supabase
 export const storage = new DatabaseStorage();
 
-// Initialize default activities on startup
+// Initialize default activities and achievements on startup
 (async () => {
   try {
+    // Initialize achievements
+    await storage.initializeAchievements();
+    
     const defaultActivities = [
-      { name: "운동", icon: "🏃‍♀️", isDefault: true },
-      { name: "독서", icon: "📚", isDefault: true },
-      { name: "요리", icon: "🍳", isDefault: true },
-      { name: "영화감상", icon: "🎬", isDefault: true },
-      { name: "음악듣기", icon: "🎵", isDefault: true },
-      { name: "산책", icon: "🚶‍♀️", isDefault: true },
-      { name: "공부", icon: "📖", isDefault: true },
-      { name: "친구만남", icon: "👥", isDefault: true },
-      { name: "게임", icon: "🎮", isDefault: true },
-      { name: "쇼핑", icon: "🛍️", isDefault: true },
-      { name: "청소", icon: "🧹", isDefault: true },
-      { name: "잠자기", icon: "😴", isDefault: true },
+      { name: "운동", icon: "🏃‍♀️", category: "건강", isDefault: true },
+      { name: "독서", icon: "📚", category: "학습", isDefault: true },
+      { name: "요리", icon: "🍳", category: "생활", isDefault: true },
+      { name: "영화감상", icon: "🎬", category: "여가", isDefault: true },
+      { name: "음악듣기", icon: "🎵", category: "여가", isDefault: true },
+      { name: "산책", icon: "🚶‍♀️", category: "건강", isDefault: true },
+      { name: "공부", icon: "📖", category: "학습", isDefault: true },
+      { name: "친구만남", icon: "👥", category: "사회", isDefault: true },
+      { name: "게임", icon: "🎮", category: "여가", isDefault: true },
+      { name: "쇼핑", icon: "🛍️", category: "생활", isDefault: true },
+      { name: "청소", icon: "🧹", category: "생활", isDefault: true },
+      { name: "잠자기", icon: "😴", category: "건강", isDefault: true },
     ];
 
     for (const activity of defaultActivities) {
@@ -741,7 +1013,7 @@ export const storage = new DatabaseStorage();
       }
     }
   } catch (error) {
-    console.log("Default activities initialization skipped");
+    console.log("Default data initialization skipped");
   }
 })();
 

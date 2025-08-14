@@ -100,6 +100,45 @@ export const userSettings = pgTable("user_settings", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// 게임화 - 업적 배지 시스템
+export const achievements = pgTable("achievements", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(), // 업적 이름
+  description: text("description").notNull(), // 업적 설명
+  icon: text("icon").notNull(), // 아이콘 (이모지)
+  type: text("type").notNull(), // 업적 유형 (diary, memoir, record, streak, etc.)
+  condition: jsonb("condition").notNull(), // 달성 조건 (JSON)
+  points: integer("points").default(10), // 획득 포인트
+  rarity: text("rarity").default("common"), // 희귀도 (common, rare, epic, legendary)
+  isActive: boolean("is_active").default(true), // 활성 상태
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// 게임화 - 사용자 업적
+export const userAchievements = pgTable("user_achievements", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  achievementId: integer("achievement_id").notNull().references(() => achievements.id),
+  unlockedAt: timestamp("unlocked_at").defaultNow(),
+  progress: integer("progress").default(0), // 진행도 (부분 달성용)
+  isCompleted: boolean("is_completed").default(false),
+});
+
+// 게임화 - 사용자 통계
+export const userStats = pgTable("user_stats", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  totalDiaryEntries: integer("total_diary_entries").default(0),
+  totalMemoirEntries: integer("total_memoir_entries").default(0),
+  totalEmotionRecords: integer("total_emotion_records").default(0),
+  currentStreak: integer("current_streak").default(0), // 연속 작성일
+  longestStreak: integer("longest_streak").default(0), // 최장 연속 작성일
+  totalPoints: integer("total_points").default(0), // 총 포인트
+  lastActiveDate: date("last_active_date"), // 마지막 활동일
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
@@ -141,6 +180,35 @@ export const insertUserSettingsSchema = createInsertSchema(userSettings).pick({
   dailyReminder: true,
   reminderTime: true,
   weekStart: true,
+});
+
+export const insertAchievementSchema = createInsertSchema(achievements).pick({
+  name: true,
+  description: true,
+  icon: true,
+  type: true,
+  condition: true,
+  points: true,
+  rarity: true,
+  isActive: true,
+});
+
+export const insertUserAchievementSchema = createInsertSchema(userAchievements).pick({
+  userId: true,
+  achievementId: true,
+  progress: true,
+  isCompleted: true,
+});
+
+export const insertUserStatsSchema = createInsertSchema(userStats).pick({
+  userId: true,
+  totalDiaryEntries: true,
+  totalMemoirEntries: true,
+  totalEmotionRecords: true,
+  currentStreak: true,
+  longestStreak: true,
+  totalPoints: true,
+  lastActiveDate: true,
 });
 
 export const insertDiaryEntrySchema = createInsertSchema(diaryEntries).pick({
@@ -206,3 +274,9 @@ export type UserSettings = typeof userSettings.$inferSelect;
 export type LoginData = z.infer<typeof loginSchema>;
 export type SignupData = z.infer<typeof signupSchema>;
 export type MenuSelectionData = z.infer<typeof menuSelectionSchema>;
+export type InsertAchievement = z.infer<typeof insertAchievementSchema>;
+export type Achievement = typeof achievements.$inferSelect;
+export type InsertUserAchievement = z.infer<typeof insertUserAchievementSchema>;
+export type UserAchievement = typeof userAchievements.$inferSelect;
+export type InsertUserStats = z.infer<typeof insertUserStatsSchema>;
+export type UserStats = typeof userStats.$inferSelect;

@@ -183,7 +183,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId: req.userId
       });
       const entry = await storage.createDiaryEntry(validatedData);
-      res.status(201).json(entry);
+      
+      // 사용자 통계 업데이트
+      let userStats = await storage.getUserStats(req.userId!);
+      if (!userStats) {
+        userStats = await storage.createUserStats({
+          userId: req.userId!,
+        });
+      }
+      
+      await storage.updateUserStats(req.userId!, {
+        totalDiaryEntries: (userStats.totalDiaryEntries || 0) + 1,
+      });
+
+      // 업적 확인 및 해제
+      const newAchievements = await storage.checkAndUnlockAchievements(req.userId!);
+      
+      res.status(201).json({ 
+        entry, 
+        newAchievements: newAchievements.length > 0 ? newAchievements : undefined 
+      });
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid data", errors: error.errors });
@@ -397,11 +416,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         useDiary: user.useDiary,
         useMemoir: user.useMemoir,
+        useRecord: user.useRecord,
         menuConfigured: user.menuConfigured
       });
     } catch (error) {
       console.error("Get user preferences error:", error);
       res.status(500).json({ message: "사용자 설정을 가져오는데 실패했습니다" });
+    }
+  });
+
+  app.put("/api/auth/user-preferences", authMiddleware, async (req: AuthenticatedRequest, res) => {
+    try {
+      const validatedData = menuSelectionSchema.parse(req.body);
+      const user = await storage.updateUserPreferences(req.userId!, validatedData);
+      if (!user) {
+        return res.status(404).json({ message: "사용자를 찾을 수 없습니다" });
+      }
+      res.json({ 
+        message: "사용자 설정이 업데이트되었습니다",
+        preferences: {
+          useDiary: user.useDiary,
+          useMemoir: user.useMemoir,
+          useRecord: user.useRecord,
+          menuConfigured: user.menuConfigured
+        }
+      });
+    } catch (error) {
+      console.error("Update user preferences error:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "입력 데이터가 올바르지 않습니다", errors: error.errors });
+      }
+      res.status(500).json({ message: "사용자 설정 업데이트에 실패했습니다" });
+    }
+  });
+
+  // 게임화 - 업적 시스템 API
+  app.get("/api/achievements", authMiddleware, async (req: AuthenticatedRequest, res) => {
+    try {
+      const achievements = await storage.getAchievements();
+      res.json(achievements);
+    } catch (error) {
+      console.error("Error fetching achievements:", error);
+      res.status(500).json({ message: "업적 목록을 가져오는데 실패했습니다" });
+    }
+  });
+
+  app.get("/api/user-achievements", authMiddleware, async (req: AuthenticatedRequest, res) => {
+    try {
+      const userAchievements = await storage.getUserAchievements(req.userId!);
+      res.json(userAchievements);
+    } catch (error) {
+      console.error("Error fetching user achievements:", error);
+      res.status(500).json({ message: "사용자 업적을 가져오는데 실패했습니다" });
+    }
+  });
+
+  app.get("/api/user-stats", authMiddleware, async (req: AuthenticatedRequest, res) => {
+    try {
+      let userStats = await storage.getUserStats(req.userId!);
+      
+      // 사용자 통계가 없으면 생성
+      if (!userStats) {
+        userStats = await storage.createUserStats({
+          userId: req.userId!,
+        });
+      }
+      
+      res.json(userStats);
+    } catch (error) {
+      console.error("Error fetching user stats:", error);
+      res.status(500).json({ message: "사용자 통계를 가져오는데 실패했습니다" });
+    }
+  });
+
+  app.post("/api/check-achievements", authMiddleware, async (req: AuthenticatedRequest, res) => {
+    try {
+      const newAchievements = await storage.checkAndUnlockAchievements(req.userId!);
+      res.json({ newAchievements });
+    } catch (error) {
+      console.error("Error checking achievements:", error);
+      res.status(500).json({ message: "업적 확인에 실패했습니다" });
     }
   });
 
@@ -435,7 +529,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId: req.userId
       });
       const entry = await storage.createMemoirEntry(validatedData);
-      res.status(201).json(entry);
+      
+      // 사용자 통계 업데이트
+      let userStats = await storage.getUserStats(req.userId!);
+      if (!userStats) {
+        userStats = await storage.createUserStats({
+          userId: req.userId!,
+        });
+      }
+      
+      await storage.updateUserStats(req.userId!, {
+        totalMemoirEntries: (userStats.totalMemoirEntries || 0) + 1,
+      });
+
+      // 업적 확인 및 해제
+      const newAchievements = await storage.checkAndUnlockAchievements(req.userId!);
+      
+      res.status(201).json({ 
+        entry, 
+        newAchievements: newAchievements.length > 0 ? newAchievements : undefined 
+      });
     } catch (error) {
       console.error("Create memoir entry error:", error);
       if (error instanceof z.ZodError) {
@@ -497,7 +610,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId: req.userId
       });
       const record = await storage.createEmotionRecord(validatedData);
-      res.status(201).json(record);
+      
+      // 사용자 통계 업데이트
+      let userStats = await storage.getUserStats(req.userId!);
+      if (!userStats) {
+        userStats = await storage.createUserStats({
+          userId: req.userId!,
+        });
+      }
+      
+      await storage.updateUserStats(req.userId!, {
+        totalEmotionRecords: (userStats.totalEmotionRecords || 0) + 1,
+      });
+
+      // 업적 확인 및 해제
+      const newAchievements = await storage.checkAndUnlockAchievements(req.userId!);
+      
+      res.status(201).json({ 
+        record, 
+        newAchievements: newAchievements.length > 0 ? newAchievements : undefined 
+      });
     } catch (error) {
       console.error("Create emotion record error:", error);
       if (error instanceof z.ZodError) {

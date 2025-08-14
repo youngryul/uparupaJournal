@@ -9,6 +9,7 @@ import DiaryPage from "@/pages/diary";
 import MemoirPage from "@/pages/memoir";
 import RecordPage from "@/pages/record";
 import MyPage from "@/pages/MyPage";
+import AchievementsPage from "@/pages/achievements";
 import LoginPage from "@/pages/login";
 import SignupPage from "@/pages/signup";
 import MenuSelectionPage from "@/pages/menu-selection";
@@ -87,6 +88,7 @@ function Router() {
             <Route path="/diary" component={DiaryPage} />
             <Route path="/memoir" component={MemoirPage} />
             <Route path="/record" component={RecordPage} />
+            <Route path="/achievements" component={AchievementsPage} />
             <Route path="/mypage" component={MyPage} />
             <Route path="/login" component={AuthRedirect} />
             <Route path="/signup" component={AuthRedirect} />

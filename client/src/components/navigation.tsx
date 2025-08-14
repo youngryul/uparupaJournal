@@ -2,7 +2,7 @@ import { Link, useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Heart, BookOpen, LogOut, User, Calendar } from "lucide-react";
+import { Heart, BookOpen, LogOut, User, Calendar, Trophy } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
 export function Navigation() {
@@ -36,6 +36,12 @@ export function Navigation() {
       icon: Calendar,
       isActive: location === "/record",
     }] : []),
+    {
+      path: "/achievements",
+      label: "업적", 
+      icon: Trophy,
+      isActive: location === "/achievements",
+    },
   ];
 
   return (

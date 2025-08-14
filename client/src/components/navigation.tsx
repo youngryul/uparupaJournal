@@ -69,10 +69,17 @@ export function Navigation() {
         )}
 
         {/* 사용자 정보 */}
-        <div className="flex items-center gap-2 text-sky-700">
-          <User className="w-4 h-4" />
-          <span className="text-sm font-medium">{user.username}</span>
-        </div>
+        <Link href="/mypage">
+          <Button
+            variant="ghost"
+            size="sm"
+            data-testid="button-mypage"
+            className="flex items-center gap-2 text-sky-700 hover:bg-sky-light/10 hover:text-sky-700 px-3 py-2 rounded-2xl"
+          >
+            <User className="w-4 h-4" />
+            <span className="text-sm font-medium">{user.username}</span>
+          </Button>
+        </Link>
 
         {/* 로그아웃 */}
         <Button

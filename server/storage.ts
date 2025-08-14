@@ -3,6 +3,10 @@ import {
   diaryEntries,
   diaryAnalyses,
   memoirEntries,
+  emotionRecords,
+  activityRecords,
+  activities,
+  userSettings,
   type User, 
   type InsertUser, 
   type DiaryEntry, 
@@ -11,15 +15,23 @@ import {
   type InsertDiaryAnalysis,
   type MemoirEntry,
   type InsertMemoirEntry,
+  type EmotionRecord,
+  type InsertEmotionRecord,
+  type ActivityRecord,
+  type InsertActivityRecord,
+  type Activity,
+  type InsertActivity,
+  type UserSettings,
+  type InsertUserSettings,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, like, or, and } from "drizzle-orm";
+import { eq, desc, like, or, and, sql } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-  updateUserPreferences(id: number, preferences: { useDiary?: boolean; useMemoir?: boolean; menuConfigured?: boolean }): Promise<User | undefined>;
+  updateUserPreferences(id: number, preferences: { useDiary?: boolean; useMemoir?: boolean; useRecord?: boolean; menuConfigured?: boolean }): Promise<User | undefined>;
   
   getDiaryEntries(userId: number): Promise<DiaryEntry[]>;
   getDiaryEntry(id: number): Promise<DiaryEntry | undefined>;
@@ -38,6 +50,32 @@ export interface IStorage {
   createMemoirEntry(entry: InsertMemoirEntry): Promise<MemoirEntry>;
   updateMemoirEntry(id: number, entry: Partial<InsertMemoirEntry>): Promise<MemoirEntry | undefined>;
   deleteMemoirEntry(id: number): Promise<boolean>;
+
+  // 기록 기능 - 감정 기록
+  getEmotionRecords(userId: number, year?: number, month?: number): Promise<EmotionRecord[]>;
+  getEmotionRecord(id: number): Promise<EmotionRecord | undefined>;
+  createEmotionRecord(record: InsertEmotionRecord): Promise<EmotionRecord>;
+  updateEmotionRecord(id: number, record: Partial<InsertEmotionRecord>): Promise<EmotionRecord | undefined>;
+  deleteEmotionRecord(id: number): Promise<boolean>;
+
+  // 기록 기능 - 활동 기록
+  getActivityRecords(userId: number, emotionRecordId?: number): Promise<ActivityRecord[]>;
+  getActivityRecord(id: number): Promise<ActivityRecord | undefined>;
+  createActivityRecord(record: InsertActivityRecord): Promise<ActivityRecord>;
+  updateActivityRecord(id: number, record: Partial<InsertActivityRecord>): Promise<ActivityRecord | undefined>;
+  deleteActivityRecord(id: number): Promise<boolean>;
+
+  // 기록 기능 - 활동 목록
+  getActivities(userId: number): Promise<Activity[]>;
+  getActivity(id: number): Promise<Activity | undefined>;
+  createActivity(activity: InsertActivity): Promise<Activity>;
+  updateActivity(id: number, activity: Partial<InsertActivity>): Promise<Activity | undefined>;
+  deleteActivity(id: number): Promise<boolean>;
+
+  // 기록 기능 - 사용자 설정
+  getUserSettings(userId: number): Promise<UserSettings | undefined>;
+  createUserSettings(settings: InsertUserSettings): Promise<UserSettings>;
+  updateUserSettings(userId: number, settings: Partial<InsertUserSettings>): Promise<UserSettings | undefined>;
 }
 
 export class MemStorage implements IStorage {
@@ -45,10 +83,18 @@ export class MemStorage implements IStorage {
   private diaryEntries: DiaryEntry[] = [];
   private diaryAnalyses: DiaryAnalysis[] = [];
   private memoirEntries: MemoirEntry[] = [];
+  private emotionRecords: EmotionRecord[] = [];
+  private activityRecords: ActivityRecord[] = [];
+  private activities: Activity[] = [];
+  private userSettings: UserSettings[] = [];
   private nextUserId = 1;
   private nextEntryId = 1;
   private nextAnalysisId = 1;
   private nextMemoirId = 1;
+  private nextEmotionRecordId = 1;
+  private nextActivityRecordId = 1;
+  private nextActivityId = 1;
+  private nextUserSettingsId = 1;
 
   async getUser(id: number): Promise<User | undefined> {
     return this.users.find(user => user.id === id);
@@ -65,6 +111,7 @@ export class MemStorage implements IStorage {
       password: insertUser.password,
       useDiary: insertUser.useDiary ?? false,
       useMemoir: insertUser.useMemoir ?? false,
+      useRecord: insertUser.useRecord ?? false,
       menuConfigured: insertUser.menuConfigured ?? false,
       createdAt: new Date(),
     };
@@ -72,12 +119,13 @@ export class MemStorage implements IStorage {
     return user;
   }
 
-  async updateUserPreferences(id: number, preferences: { useDiary?: boolean; useMemoir?: boolean; menuConfigured?: boolean }): Promise<User | undefined> {
+  async updateUserPreferences(id: number, preferences: { useDiary?: boolean; useMemoir?: boolean; useRecord?: boolean; menuConfigured?: boolean }): Promise<User | undefined> {
     const user = this.users.find(u => u.id === id);
     if (!user) return undefined;
     
     if (preferences.useDiary !== undefined) user.useDiary = preferences.useDiary;
     if (preferences.useMemoir !== undefined) user.useMemoir = preferences.useMemoir;
+    if (preferences.useRecord !== undefined) user.useRecord = preferences.useRecord;
     if (preferences.menuConfigured !== undefined) user.menuConfigured = preferences.menuConfigured;
     
     return user;
@@ -207,6 +255,169 @@ export class MemStorage implements IStorage {
     this.memoirEntries.splice(index, 1);
     return true;
   }
+
+  // 기록 기능 - 감정 기록
+  async getEmotionRecords(userId: number, year?: number, month?: number): Promise<EmotionRecord[]> {
+    return this.emotionRecords
+      .filter(record => {
+        if (record.userId !== userId) return false;
+        if (year && month) {
+          const recordDate = new Date(record.date);
+          return recordDate.getFullYear() === year && recordDate.getMonth() + 1 === month;
+        }
+        return true;
+      })
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }
+
+  async getEmotionRecord(id: number): Promise<EmotionRecord | undefined> {
+    return this.emotionRecords.find(record => record.id === id);
+  }
+
+  async createEmotionRecord(insertRecord: InsertEmotionRecord): Promise<EmotionRecord> {
+    const record: EmotionRecord = {
+      id: this.nextEmotionRecordId++,
+      userId: insertRecord.userId,
+      date: insertRecord.date,
+      emotion: insertRecord.emotion,
+      memo: insertRecord.memo || null,
+      photos: insertRecord.photos || [],
+      createdAt: new Date(),
+    };
+    this.emotionRecords.push(record);
+    return record;
+  }
+
+  async updateEmotionRecord(id: number, updateRecord: Partial<InsertEmotionRecord>): Promise<EmotionRecord | undefined> {
+    const index = this.emotionRecords.findIndex(record => record.id === id);
+    if (index === -1) return undefined;
+    
+    this.emotionRecords[index] = { ...this.emotionRecords[index], ...updateRecord };
+    return this.emotionRecords[index];
+  }
+
+  async deleteEmotionRecord(id: number): Promise<boolean> {
+    const index = this.emotionRecords.findIndex(record => record.id === id);
+    if (index === -1) return false;
+    
+    this.emotionRecords.splice(index, 1);
+    return true;
+  }
+
+  // 기록 기능 - 활동 기록
+  async getActivityRecords(userId: number, emotionRecordId?: number): Promise<ActivityRecord[]> {
+    return this.activityRecords
+      .filter(record => {
+        if (record.userId !== userId) return false;
+        if (emotionRecordId && record.emotionRecordId !== emotionRecordId) return false;
+        return true;
+      })
+      .sort((a, b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0));
+  }
+
+  async getActivityRecord(id: number): Promise<ActivityRecord | undefined> {
+    return this.activityRecords.find(record => record.id === id);
+  }
+
+  async createActivityRecord(insertRecord: InsertActivityRecord): Promise<ActivityRecord> {
+    const record: ActivityRecord = {
+      id: this.nextActivityRecordId++,
+      userId: insertRecord.userId,
+      emotionRecordId: insertRecord.emotionRecordId,
+      activityId: insertRecord.activityId,
+      duration: insertRecord.duration || null,
+      intensity: insertRecord.intensity || null,
+      notes: insertRecord.notes || null,
+      createdAt: new Date(),
+    };
+    this.activityRecords.push(record);
+    return record;
+  }
+
+  async updateActivityRecord(id: number, updateRecord: Partial<InsertActivityRecord>): Promise<ActivityRecord | undefined> {
+    const index = this.activityRecords.findIndex(record => record.id === id);
+    if (index === -1) return undefined;
+    
+    this.activityRecords[index] = { ...this.activityRecords[index], ...updateRecord };
+    return this.activityRecords[index];
+  }
+
+  async deleteActivityRecord(id: number): Promise<boolean> {
+    const index = this.activityRecords.findIndex(record => record.id === id);
+    if (index === -1) return false;
+    
+    this.activityRecords.splice(index, 1);
+    return true;
+  }
+
+  // 기록 기능 - 활동 목록
+  async getActivities(userId: number): Promise<Activity[]> {
+    return this.activities
+      .filter(activity => activity.userId === userId || activity.isDefault)
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  async getActivity(id: number): Promise<Activity | undefined> {
+    return this.activities.find(activity => activity.id === id);
+  }
+
+  async createActivity(insertActivity: InsertActivity): Promise<Activity> {
+    const activity: Activity = {
+      id: this.nextActivityId++,
+      userId: insertActivity.userId || null,
+      name: insertActivity.name,
+      icon: insertActivity.icon,
+      category: insertActivity.category,
+      isDefault: insertActivity.isDefault ?? false,
+      createdAt: new Date(),
+    };
+    this.activities.push(activity);
+    return activity;
+  }
+
+  async updateActivity(id: number, updateActivity: Partial<InsertActivity>): Promise<Activity | undefined> {
+    const index = this.activities.findIndex(activity => activity.id === id);
+    if (index === -1) return undefined;
+    
+    this.activities[index] = { ...this.activities[index], ...updateActivity };
+    return this.activities[index];
+  }
+
+  async deleteActivity(id: number): Promise<boolean> {
+    const index = this.activities.findIndex(activity => activity.id === id);
+    if (index === -1) return false;
+    
+    this.activities.splice(index, 1);
+    return true;
+  }
+
+  // 기록 기능 - 사용자 설정
+  async getUserSettings(userId: number): Promise<UserSettings | undefined> {
+    return this.userSettings.find(settings => settings.userId === userId);
+  }
+
+  async createUserSettings(insertSettings: InsertUserSettings): Promise<UserSettings> {
+    const settings: UserSettings = {
+      id: this.nextUserSettingsId++,
+      userId: insertSettings.userId,
+      theme: insertSettings.theme || "blue",
+      emotionIcon: insertSettings.emotionIcon || "bean",
+      dailyReminder: insertSettings.dailyReminder ?? true,
+      reminderTime: insertSettings.reminderTime || "21:00",
+      weekStart: insertSettings.weekStart ?? 0,
+      createdAt: new Date(),
+    };
+    this.userSettings.push(settings);
+    return settings;
+  }
+
+  async updateUserSettings(userId: number, updateSettings: Partial<InsertUserSettings>): Promise<UserSettings | undefined> {
+    const index = this.userSettings.findIndex(settings => settings.userId === userId);
+    if (index === -1) return undefined;
+    
+    this.userSettings[index] = { ...this.userSettings[index], ...updateSettings };
+    return this.userSettings[index];
+  }
 }
 
 export class DatabaseStorage implements IStorage {
@@ -228,7 +439,7 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async updateUserPreferences(id: number, preferences: { useDiary?: boolean; useMemoir?: boolean; menuConfigured?: boolean }): Promise<User | undefined> {
+  async updateUserPreferences(id: number, preferences: { useDiary?: boolean; useMemoir?: boolean; useRecord?: boolean; menuConfigured?: boolean }): Promise<User | undefined> {
     const [updated] = await db
       .update(users)
       .set(preferences)
@@ -349,10 +560,193 @@ export class DatabaseStorage implements IStorage {
     const result = await db.delete(diaryAnalyses).where(eq(diaryAnalyses.diaryEntryId, diaryEntryId));
     return result.length > 0;
   }
+
+  // 기록 기능 - 감정 기록
+  async getEmotionRecords(userId: number, year?: number, month?: number): Promise<EmotionRecord[]> {
+    let conditions = [eq(emotionRecords.userId, userId)];
+    
+    if (year && month) {
+      const startDate = new Date(year, month - 1, 1);
+      const endDate = new Date(year, month, 0);
+      conditions.push(
+        and(
+          sql`${emotionRecords.date} >= ${startDate.toISOString().split('T')[0]}`,
+          sql`${emotionRecords.date} <= ${endDate.toISOString().split('T')[0]}`
+        )
+      );
+    }
+
+    return await db
+      .select()
+      .from(emotionRecords)
+      .where(and(...conditions))
+      .orderBy(desc(emotionRecords.date));
+  }
+
+  async getEmotionRecord(id: number): Promise<EmotionRecord | undefined> {
+    const [record] = await db.select().from(emotionRecords).where(eq(emotionRecords.id, id));
+    return record || undefined;
+  }
+
+  async createEmotionRecord(insertRecord: InsertEmotionRecord): Promise<EmotionRecord> {
+    const [record] = await db
+      .insert(emotionRecords)
+      .values(insertRecord)
+      .returning();
+    return record;
+  }
+
+  async updateEmotionRecord(id: number, updateRecord: Partial<InsertEmotionRecord>): Promise<EmotionRecord | undefined> {
+    const [updated] = await db
+      .update(emotionRecords)
+      .set(updateRecord)
+      .where(eq(emotionRecords.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteEmotionRecord(id: number): Promise<boolean> {
+    const result = await db.delete(emotionRecords).where(eq(emotionRecords.id, id));
+    return result.length > 0;
+  }
+
+  // 기록 기능 - 활동 기록
+  async getActivityRecords(userId: number, emotionRecordId?: number): Promise<ActivityRecord[]> {
+    let conditions = [eq(activityRecords.userId, userId)];
+    
+    if (emotionRecordId) {
+      conditions.push(eq(activityRecords.emotionRecordId, emotionRecordId));
+    }
+
+    return await db
+      .select()
+      .from(activityRecords)
+      .where(and(...conditions))
+      .orderBy(desc(activityRecords.createdAt));
+  }
+
+  async getActivityRecord(id: number): Promise<ActivityRecord | undefined> {
+    const [record] = await db.select().from(activityRecords).where(eq(activityRecords.id, id));
+    return record || undefined;
+  }
+
+  async createActivityRecord(insertRecord: InsertActivityRecord): Promise<ActivityRecord> {
+    const [record] = await db
+      .insert(activityRecords)
+      .values(insertRecord)
+      .returning();
+    return record;
+  }
+
+  async updateActivityRecord(id: number, updateRecord: Partial<InsertActivityRecord>): Promise<ActivityRecord | undefined> {
+    const [updated] = await db
+      .update(activityRecords)
+      .set(updateRecord)
+      .where(eq(activityRecords.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteActivityRecord(id: number): Promise<boolean> {
+    const result = await db.delete(activityRecords).where(eq(activityRecords.id, id));
+    return result.length > 0;
+  }
+
+  // 기록 기능 - 활동 목록
+  async getActivities(userId: number): Promise<Activity[]> {
+    return await db
+      .select()
+      .from(activities)
+      .where(or(eq(activities.userId, userId), eq(activities.isDefault, true)))
+      .orderBy(activities.name);
+  }
+
+  async getActivity(id: number): Promise<Activity | undefined> {
+    const [activity] = await db.select().from(activities).where(eq(activities.id, id));
+    return activity || undefined;
+  }
+
+  async createActivity(insertActivity: InsertActivity): Promise<Activity> {
+    const [activity] = await db
+      .insert(activities)
+      .values(insertActivity)
+      .returning();
+    return activity;
+  }
+
+  async updateActivity(id: number, updateActivity: Partial<InsertActivity>): Promise<Activity | undefined> {
+    const [updated] = await db
+      .update(activities)
+      .set(updateActivity)
+      .where(eq(activities.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteActivity(id: number): Promise<boolean> {
+    const result = await db.delete(activities).where(eq(activities.id, id));
+    return result.length > 0;
+  }
+
+  // 기록 기능 - 사용자 설정
+  async getUserSettings(userId: number): Promise<UserSettings | undefined> {
+    const [settings] = await db.select().from(userSettings).where(eq(userSettings.userId, userId));
+    return settings || undefined;
+  }
+
+  async createUserSettings(insertSettings: InsertUserSettings): Promise<UserSettings> {
+    const [settings] = await db
+      .insert(userSettings)
+      .values(insertSettings)
+      .returning();
+    return settings;
+  }
+
+  async updateUserSettings(userId: number, updateSettings: Partial<InsertUserSettings>): Promise<UserSettings | undefined> {
+    const [updated] = await db
+      .update(userSettings)
+      .set(updateSettings)
+      .where(eq(userSettings.userId, userId))
+      .returning();
+    return updated || undefined;
+  }
 }
 
 // Use DatabaseStorage with Supabase
 export const storage = new DatabaseStorage();
+
+// Initialize default activities on startup
+(async () => {
+  try {
+    const defaultActivities = [
+      { name: "운동", icon: "🏃‍♀️", isDefault: true },
+      { name: "독서", icon: "📚", isDefault: true },
+      { name: "요리", icon: "🍳", isDefault: true },
+      { name: "영화감상", icon: "🎬", isDefault: true },
+      { name: "음악듣기", icon: "🎵", isDefault: true },
+      { name: "산책", icon: "🚶‍♀️", isDefault: true },
+      { name: "공부", icon: "📖", isDefault: true },
+      { name: "친구만남", icon: "👥", isDefault: true },
+      { name: "게임", icon: "🎮", isDefault: true },
+      { name: "쇼핑", icon: "🛍️", isDefault: true },
+      { name: "청소", icon: "🧹", isDefault: true },
+      { name: "잠자기", icon: "😴", isDefault: true },
+    ];
+
+    for (const activity of defaultActivities) {
+      try {
+        await db.insert(activities).values({
+          userId: 0, // 기본 활동은 userId 0으로 설정
+          ...activity
+        }).onConflictDoNothing();
+      } catch (error) {
+        // 활동이 이미 존재하는 경우 무시
+      }
+    }
+  } catch (error) {
+    console.log("Default activities initialization skipped");
+  }
+})();
 
 // MemStorage is still available as backup
 // export const storage = new MemStorage();

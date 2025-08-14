@@ -2,7 +2,7 @@ import { Link, useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Heart, BookOpen, LogOut, User } from "lucide-react";
+import { Heart, BookOpen, LogOut, User, Calendar } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
 export function Navigation() {
@@ -10,7 +10,7 @@ export function Navigation() {
   const [location] = useLocation();
 
   // 사용자의 메뉴 설정 조회  
-  const { data: userPreferences } = useQuery<{ useDiary?: boolean; useMemoir?: boolean }>({
+  const { data: userPreferences } = useQuery<{ useDiary?: boolean; useMemoir?: boolean; useRecord?: boolean }>({
     queryKey: ['/api/auth/user-preferences'],
     enabled: !!user,
   });
@@ -29,6 +29,12 @@ export function Navigation() {
       label: "회고록", 
       icon: BookOpen,
       isActive: location === "/memoir",
+    }] : []),
+    ...(userPreferences?.useRecord === true ? [{
+      path: "/record",
+      label: "기록", 
+      icon: Calendar,
+      isActive: location === "/record",
     }] : []),
   ];
 

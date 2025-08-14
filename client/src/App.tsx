@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import NotFound from "@/pages/not-found";
 import DiaryPage from "@/pages/diary";
 import MemoirPage from "@/pages/memoir";
+import RecordPage from "@/pages/record";
 import LoginPage from "@/pages/login";
 import SignupPage from "@/pages/signup";
 import MenuSelectionPage from "@/pages/menu-selection";
@@ -31,7 +32,7 @@ function Router() {
   const [showMenuSelection, setShowMenuSelection] = useState(false);
 
   // 사용자의 메뉴 설정 확인
-  const { data: userPreferences, isLoading: isPreferencesLoading } = useQuery<{ useDiary?: boolean; useMemoir?: boolean; menuConfigured?: boolean }>({
+  const { data: userPreferences, isLoading: isPreferencesLoading } = useQuery<{ useDiary?: boolean; useMemoir?: boolean; useRecord?: boolean; menuConfigured?: boolean }>({
     queryKey: ['/api/auth/user-preferences'],
     enabled: !!user,
   });
@@ -84,6 +85,7 @@ function Router() {
             <Route path="/" component={DiaryPage} />
             <Route path="/diary" component={DiaryPage} />
             <Route path="/memoir" component={MemoirPage} />
+            <Route path="/record" component={RecordPage} />
             <Route path="/login" component={AuthRedirect} />
             <Route path="/signup" component={AuthRedirect} />
           </>

@@ -1,7 +1,18 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertDiaryEntrySchema, insertDiaryAnalysisSchema, insertMemoirEntrySchema, loginSchema, signupSchema, menuSelectionSchema } from "@shared/schema";
+import { 
+  insertDiaryEntrySchema, 
+  insertDiaryAnalysisSchema, 
+  insertMemoirEntrySchema, 
+  insertEmotionRecordSchema,
+  insertActivityRecordSchema,
+  insertActivitySchema,
+  insertUserSettingsSchema,
+  loginSchema, 
+  signupSchema, 
+  menuSelectionSchema 
+} from "@shared/schema";
 import { hashPassword, comparePassword, generateToken, authMiddleware, type AuthenticatedRequest } from "./auth";
 import { analyzeDiary } from "./ai-analysis";
 import { z } from "zod";
@@ -411,6 +422,110 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Delete memoir entry error:", error);
       res.status(500).json({ message: "회고록 삭제에 실패했습니다" });
+    }
+  });
+
+  // 기록 기능 - 감정 기록 API
+  app.get("/api/emotion-records", authMiddleware, async (req: AuthenticatedRequest, res) => {
+    try {
+      const year = req.query.year ? parseInt(req.query.year as string) : undefined;
+      const month = req.query.month ? parseInt(req.query.month as string) : undefined;
+      const records = await storage.getEmotionRecords(req.userId!, year, month);
+      res.json(records);
+    } catch (error) {
+      console.error("Get emotion records error:", error);
+      res.status(500).json({ message: "감정 기록을 불러오는데 실패했습니다" });
+    }
+  });
+
+  app.post("/api/emotion-records", authMiddleware, async (req: AuthenticatedRequest, res) => {
+    try {
+      const validatedData = insertEmotionRecordSchema.parse({
+        ...req.body,
+        userId: req.userId
+      });
+      const record = await storage.createEmotionRecord(validatedData);
+      res.status(201).json(record);
+    } catch (error) {
+      console.error("Create emotion record error:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "입력 데이터가 올바르지 않습니다", errors: error.errors });
+      }
+      res.status(500).json({ message: "감정 기록 저장에 실패했습니다" });
+    }
+  });
+
+  // 기록 기능 - 활동 목록 API
+  app.get("/api/activities", authMiddleware, async (req: AuthenticatedRequest, res) => {
+    try {
+      const activities = await storage.getActivities(req.userId!);
+      res.json(activities);
+    } catch (error) {
+      console.error("Get activities error:", error);
+      res.status(500).json({ message: "활동 목록을 불러오는데 실패했습니다" });
+    }
+  });
+
+  app.post("/api/activities", authMiddleware, async (req: AuthenticatedRequest, res) => {
+    try {
+      const validatedData = insertActivitySchema.parse({
+        ...req.body,
+        userId: req.userId
+      });
+      const activity = await storage.createActivity(validatedData);
+      res.status(201).json(activity);
+    } catch (error) {
+      console.error("Create activity error:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "입력 데이터가 올바르지 않습니다", errors: error.errors });
+      }
+      res.status(500).json({ message: "활동 추가에 실패했습니다" });
+    }
+  });
+
+  // 기록 기능 - 사용자 설정 API
+  app.get("/api/user-settings", authMiddleware, async (req: AuthenticatedRequest, res) => {
+    try {
+      const settings = await storage.getUserSettings(req.userId!);
+      if (!settings) {
+        // 기본 설정 생성
+        const defaultSettings = await storage.createUserSettings({
+          userId: req.userId!,
+          theme: "blue",
+          emotionIcon: "bean",
+          dailyReminder: true,
+          reminderTime: "21:00",
+          weekStart: 0
+        });
+        return res.json(defaultSettings);
+      }
+      res.json(settings);
+    } catch (error) {
+      console.error("Get user settings error:", error);
+      res.status(500).json({ message: "사용자 설정을 불러오는데 실패했습니다" });
+    }
+  });
+
+  app.put("/api/user-settings", authMiddleware, async (req: AuthenticatedRequest, res) => {
+    try {
+      const validatedData = insertUserSettingsSchema.omit({ userId: true }).partial().parse(req.body);
+      let settings = await storage.updateUserSettings(req.userId!, validatedData);
+      
+      // 설정이 없으면 새로 생성
+      if (!settings) {
+        settings = await storage.createUserSettings({
+          userId: req.userId!,
+          ...validatedData
+        });
+      }
+      
+      res.json(settings);
+    } catch (error) {
+      console.error("Update user settings error:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "입력 데이터가 올바르지 않습니다", errors: error.errors });
+      }
+      res.status(500).json({ message: "사용자 설정 저장에 실패했습니다" });
     }
   });
 

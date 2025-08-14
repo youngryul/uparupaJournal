@@ -99,6 +99,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get user preferences
+  app.get("/api/auth/user-preferences", authMiddleware, async (req: AuthenticatedRequest, res) => {
+    try {
+      const user = await storage.getUser(req.userId!);
+      if (!user) {
+        return res.status(404).json({ message: "사용자를 찾을 수 없습니다" });
+      }
+      res.json({ 
+        useDiary: user.useDiary,
+        useMemoir: user.useMemoir,
+        useRecord: user.useRecord,
+        menuConfigured: user.menuConfigured
+      });
+    } catch (error) {
+      console.error("Get user preferences error:", error);
+      res.status(500).json({ message: "사용자 설정을 가져오는데 실패했습니다" });
+    }
+  });
+
+  // Update user preferences
+  app.put("/api/auth/user-preferences", authMiddleware, async (req: AuthenticatedRequest, res) => {
+    try {
+      const validatedData = z.object({
+        useDiary: z.boolean().optional(),
+        useMemoir: z.boolean().optional(),
+        useRecord: z.boolean().optional(),
+        menuConfigured: z.boolean().optional()
+      }).parse(req.body);
+
+      const updatedUser = await storage.updateUserPreferences(req.userId!, validatedData);
+      if (!updatedUser) {
+        return res.status(404).json({ message: "사용자를 찾을 수 없습니다" });
+      }
+      
+      res.json({ 
+        message: "사용자 설정이 업데이트되었습니다",
+        preferences: {
+          useDiary: updatedUser.useDiary,
+          useMemoir: updatedUser.useMemoir,
+          useRecord: updatedUser.useRecord,
+          menuConfigured: updatedUser.menuConfigured
+        }
+      });
+    } catch (error) {
+      console.error("Update user preferences error:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "입력 데이터가 올바르지 않습니다", errors: error.errors });
+      }
+      res.status(500).json({ message: "사용자 설정 업데이트에 실패했습니다" });
+    }
+  });
+
   // Get user's diary entries
   app.get("/api/diary-entries", authMiddleware, async (req: AuthenticatedRequest, res) => {
     try {

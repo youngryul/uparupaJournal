@@ -569,10 +569,7 @@ export class DatabaseStorage implements IStorage {
       const startDate = new Date(year, month - 1, 1);
       const endDate = new Date(year, month, 0);
       conditions.push(
-        and(
-          sql`${emotionRecords.date} >= ${startDate.toISOString().split('T')[0]}`,
-          sql`${emotionRecords.date} <= ${endDate.toISOString().split('T')[0]}`
-        )
+        sql`${emotionRecords.date} >= ${startDate.toISOString().split('T')[0]} AND ${emotionRecords.date} <= ${endDate.toISOString().split('T')[0]}`
       );
     }
 
@@ -736,8 +733,8 @@ export const storage = new DatabaseStorage();
     for (const activity of defaultActivities) {
       try {
         await db.insert(activities).values({
-          userId: 0, // 기본 활동은 userId 0으로 설정
-          ...activity
+          ...activity,
+          userId: 0 // 기본 활동은 userId 0으로 설정
         }).onConflictDoNothing();
       } catch (error) {
         // 활동이 이미 존재하는 경우 무시

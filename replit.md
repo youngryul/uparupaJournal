@@ -20,6 +20,10 @@ Preferred communication style: Simple, everyday language.
 - ✓ Successfully connected to Supabase PostgreSQL database
 - ✓ All existing user data and diary entries preserved during migration
 - ✓ Added automatic redirect to main page after signup with proper route handling
+- ✓ Integrated OpenAI GPT-4o powered AI diary analysis feature
+- ✓ Added emotional analysis, theme extraction, keyword identification, and AI suggestions
+- ✓ Implemented collapsible UI for analysis results with regeneration and deletion capabilities
+- ✓ Removed emotion change flow feature from diary entry form at user request
 
 ## System Architecture
 

@@ -25,10 +25,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
   const queryClient = useQueryClient();
 
+  // Set up effect to sync token changes with localStorage
+  useEffect(() => {
+    const storedToken = localStorage.getItem('auth_token');
+    if (storedToken !== token) {
+      setToken(storedToken);
+    }
+  }, [token]);
+
   const { data: user, isLoading } = useQuery({
     queryKey: ['/api/auth/me'],
     enabled: !!token,
     retry: false,
+    staleTime: 0,
+    gcTime: 0,
   });
 
   const loginMutation = useMutation({
@@ -40,9 +50,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setToken(data.token);
       localStorage.setItem('auth_token', data.token);
       // Force refetch user data after setting token
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
-      }, 100);
+      queryClient.removeQueries({ queryKey: ['/api/auth/me'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/user-preferences'] });
     },
   });
 
@@ -55,9 +65,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setToken(data.token);
       localStorage.setItem('auth_token', data.token);
       // Force refetch user data after setting token
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
-      }, 100);
+      queryClient.removeQueries({ queryKey: ['/api/auth/me'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/user-preferences'] });
     },
   });
 

@@ -2,7 +2,7 @@ import { Link, useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Heart, BookOpen, LogOut, User } from "lucide-react";
+import { Heart, BookOpen, LogOut, User, Calendar, Trophy } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
 export function Navigation() {
@@ -10,7 +10,7 @@ export function Navigation() {
   const [location] = useLocation();
 
   // 사용자의 메뉴 설정 조회  
-  const { data: userPreferences } = useQuery<{ useDiary?: boolean; useMemoir?: boolean }>({
+  const { data: userPreferences } = useQuery<{ useDiary?: boolean; useMemoir?: boolean; useRecord?: boolean }>({
     queryKey: ['/api/auth/user-preferences'],
     enabled: !!user,
   });
@@ -30,6 +30,18 @@ export function Navigation() {
       icon: BookOpen,
       isActive: location === "/memoir",
     }] : []),
+    ...(userPreferences?.useRecord === true ? [{
+      path: "/record",
+      label: "기록", 
+      icon: Calendar,
+      isActive: location === "/record",
+    }] : []),
+    {
+      path: "/achievements",
+      label: "업적", 
+      icon: Trophy,
+      isActive: location === "/achievements",
+    },
   ];
 
   return (
@@ -63,10 +75,17 @@ export function Navigation() {
         )}
 
         {/* 사용자 정보 */}
-        <div className="flex items-center gap-2 text-sky-700">
-          <User className="w-4 h-4" />
-          <span className="text-sm font-medium">{user.username}</span>
-        </div>
+        <Link href="/mypage">
+          <Button
+            variant="ghost"
+            size="sm"
+            data-testid="button-mypage"
+            className="flex items-center gap-2 text-sky-700 hover:bg-sky-light/10 hover:text-sky-700 px-3 py-2 rounded-2xl"
+          >
+            <User className="w-4 h-4" />
+            <span className="text-sm font-medium">{user.username}</span>
+          </Button>
+        </Link>
 
         {/* 로그아웃 */}
         <Button

@@ -19,6 +19,7 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   useDiary: boolean("use_diary").default(false),
   useMemoir: boolean("use_memoir").default(false),
+  useRecord: boolean("use_record").default(false),
   menuConfigured: boolean("menu_configured").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -53,12 +54,161 @@ export const diaryAnalyses = pgTable("diary_analyses", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// 기록 기능 - 감정 기록
+export const emotionRecords = pgTable("emotion_records", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  date: date("date").notNull(),
+  emotion: integer("emotion").notNull(), // 1(매우 나쁨) ~ 5(매우 좋음)
+  memo: text("memo"), // 간단 메모
+  photos: text("photos").array(), // 사진 경로들 (최대 3장)
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// 기록 기능 - 활동 기록
+export const activityRecords = pgTable("activity_records", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  emotionRecordId: integer("emotion_record_id").notNull().references(() => emotionRecords.id),
+  activityId: integer("activity_id").notNull().references(() => activities.id),
+  duration: integer("duration"), // 활동 시간 (분)
+  intensity: integer("intensity"), // 활동 강도 1-5
+  notes: text("notes"), // 활동 메모
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// 기록 기능 - 활동 목록 (사용자 정의 가능)
+export const activities = pgTable("activities", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id), // null이면 기본 활동
+  name: text("name").notNull(),
+  icon: text("icon").notNull(), // 아이콘 이름 또는 이모지
+  category: text("category").notNull(), // 운동, 수면, 공부, 여가 등
+  isDefault: boolean("is_default").default(false), // 기본 제공 활동인지
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// 기록 기능 - 사용자 설정
+export const userSettings = pgTable("user_settings", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  theme: text("theme").default("blue"), // 테마 색상
+  emotionIcon: text("emotion_icon").default("bean"), // 감정 아이콘 스타일
+  dailyReminder: boolean("daily_reminder").default(true), // 일일 알림
+  reminderTime: text("reminder_time").default("21:00"), // 알림 시간
+  weekStart: integer("week_start").default(0), // 주 시작일 (0=일요일)
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// 게임화 - 업적 배지 시스템
+export const achievements = pgTable("achievements", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(), // 업적 이름
+  description: text("description").notNull(), // 업적 설명
+  icon: text("icon").notNull(), // 아이콘 (이모지)
+  type: text("type").notNull(), // 업적 유형 (diary, memoir, record, streak, etc.)
+  condition: jsonb("condition").notNull(), // 달성 조건 (JSON)
+  points: integer("points").default(10), // 획득 포인트
+  rarity: text("rarity").default("common"), // 희귀도 (common, rare, epic, legendary)
+  isActive: boolean("is_active").default(true), // 활성 상태
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// 게임화 - 사용자 업적
+export const userAchievements = pgTable("user_achievements", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  achievementId: integer("achievement_id").notNull().references(() => achievements.id),
+  unlockedAt: timestamp("unlocked_at").defaultNow(),
+  progress: integer("progress").default(0), // 진행도 (부분 달성용)
+  isCompleted: boolean("is_completed").default(false),
+});
+
+// 게임화 - 사용자 통계
+export const userStats = pgTable("user_stats", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  totalDiaryEntries: integer("total_diary_entries").default(0),
+  totalMemoirEntries: integer("total_memoir_entries").default(0),
+  totalEmotionRecords: integer("total_emotion_records").default(0),
+  currentStreak: integer("current_streak").default(0), // 연속 작성일
+  longestStreak: integer("longest_streak").default(0), // 최장 연속 작성일
+  totalPoints: integer("total_points").default(0), // 총 포인트
+  lastActiveDate: date("last_active_date"), // 마지막 활동일
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
   useDiary: true,
   useMemoir: true,
+  useRecord: true,
   menuConfigured: true,
+});
+
+export const insertEmotionRecordSchema = createInsertSchema(emotionRecords).pick({
+  userId: true,
+  date: true,
+  emotion: true,
+  memo: true,
+  photos: true,
+});
+
+export const insertActivityRecordSchema = createInsertSchema(activityRecords).pick({
+  userId: true,
+  emotionRecordId: true,
+  activityId: true,
+  duration: true,
+  intensity: true,
+  notes: true,
+});
+
+export const insertActivitySchema = createInsertSchema(activities).pick({
+  userId: true,
+  name: true,
+  icon: true,
+  category: true,
+  isDefault: true,
+});
+
+export const insertUserSettingsSchema = createInsertSchema(userSettings).pick({
+  userId: true,
+  theme: true,
+  emotionIcon: true,
+  dailyReminder: true,
+  reminderTime: true,
+  weekStart: true,
+});
+
+export const insertAchievementSchema = createInsertSchema(achievements).pick({
+  name: true,
+  description: true,
+  icon: true,
+  type: true,
+  condition: true,
+  points: true,
+  rarity: true,
+  isActive: true,
+});
+
+export const insertUserAchievementSchema = createInsertSchema(userAchievements).pick({
+  userId: true,
+  achievementId: true,
+  progress: true,
+  isCompleted: true,
+});
+
+export const insertUserStatsSchema = createInsertSchema(userStats).pick({
+  userId: true,
+  totalDiaryEntries: true,
+  totalMemoirEntries: true,
+  totalEmotionRecords: true,
+  currentStreak: true,
+  longestStreak: true,
+  totalPoints: true,
+  lastActiveDate: true,
 });
 
 export const insertDiaryEntrySchema = createInsertSchema(diaryEntries).pick({
@@ -102,6 +252,7 @@ export const signupSchema = z.object({
 export const menuSelectionSchema = z.object({
   useDiary: z.boolean().default(true),
   useMemoir: z.boolean().default(false),
+  useRecord: z.boolean().default(false),
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -112,6 +263,20 @@ export type InsertMemoirEntry = z.infer<typeof insertMemoirEntrySchema>;
 export type MemoirEntry = typeof memoirEntries.$inferSelect;
 export type InsertDiaryAnalysis = z.infer<typeof insertDiaryAnalysisSchema>;
 export type DiaryAnalysis = typeof diaryAnalyses.$inferSelect;
+export type InsertEmotionRecord = z.infer<typeof insertEmotionRecordSchema>;
+export type EmotionRecord = typeof emotionRecords.$inferSelect;
+export type InsertActivityRecord = z.infer<typeof insertActivityRecordSchema>;
+export type ActivityRecord = typeof activityRecords.$inferSelect;
+export type InsertActivity = z.infer<typeof insertActivitySchema>;
+export type Activity = typeof activities.$inferSelect;
+export type InsertUserSettings = z.infer<typeof insertUserSettingsSchema>;
+export type UserSettings = typeof userSettings.$inferSelect;
 export type LoginData = z.infer<typeof loginSchema>;
 export type SignupData = z.infer<typeof signupSchema>;
 export type MenuSelectionData = z.infer<typeof menuSelectionSchema>;
+export type InsertAchievement = z.infer<typeof insertAchievementSchema>;
+export type Achievement = typeof achievements.$inferSelect;
+export type InsertUserAchievement = z.infer<typeof insertUserAchievementSchema>;
+export type UserAchievement = typeof userAchievements.$inferSelect;
+export type InsertUserStats = z.infer<typeof insertUserStatsSchema>;
+export type UserStats = typeof userStats.$inferSelect;

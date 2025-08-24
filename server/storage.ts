@@ -19,7 +19,7 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-  updateUserPreferences(id: number, preferences: { useDiary?: boolean; useMemoir?: boolean; menuConfigured?: boolean }): Promise<User | undefined>;
+  updateUserPreferences(id: number, preferences: { useDiary?: boolean; useMemoir?: boolean; menuConfigured?: boolean; showInstallPrompt?: boolean }): Promise<User | undefined>;
   
   getDiaryEntries(userId: number): Promise<DiaryEntry[]>;
   getDiaryEntry(id: number): Promise<DiaryEntry | undefined>;
@@ -66,19 +66,21 @@ export class MemStorage implements IStorage {
       useDiary: insertUser.useDiary ?? false,
       useMemoir: insertUser.useMemoir ?? false,
       menuConfigured: insertUser.menuConfigured ?? false,
+      showInstallPrompt: insertUser.showInstallPrompt ?? true,
       createdAt: new Date(),
     };
     this.users.push(user);
     return user;
   }
 
-  async updateUserPreferences(id: number, preferences: { useDiary?: boolean; useMemoir?: boolean; menuConfigured?: boolean }): Promise<User | undefined> {
+  async updateUserPreferences(id: number, preferences: { useDiary?: boolean; useMemoir?: boolean; menuConfigured?: boolean; showInstallPrompt?: boolean }): Promise<User | undefined> {
     const user = this.users.find(u => u.id === id);
     if (!user) return undefined;
     
     if (preferences.useDiary !== undefined) user.useDiary = preferences.useDiary;
     if (preferences.useMemoir !== undefined) user.useMemoir = preferences.useMemoir;
     if (preferences.menuConfigured !== undefined) user.menuConfigured = preferences.menuConfigured;
+    if (preferences.showInstallPrompt !== undefined) user.showInstallPrompt = preferences.showInstallPrompt;
     
     return user;
   }
@@ -228,7 +230,7 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async updateUserPreferences(id: number, preferences: { useDiary?: boolean; useMemoir?: boolean; menuConfigured?: boolean }): Promise<User | undefined> {
+  async updateUserPreferences(id: number, preferences: { useDiary?: boolean; useMemoir?: boolean; menuConfigured?: boolean; showInstallPrompt?: boolean }): Promise<User | undefined> {
     const [updated] = await db
       .update(users)
       .set(preferences)

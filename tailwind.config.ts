@@ -61,6 +61,32 @@ export default {
           border: "var(--sidebar-border)",
           ring: "var(--sidebar-ring)",
         },
+        // Custom axolotl theme colors
+        sky: {
+          soft: "var(--sky-soft)",
+          light: "var(--sky-light)",
+          600: "var(--sky-600)",
+          700: "var(--sky-700)",
+          800: "var(--sky-800)",
+        },
+        pink: {
+          soft: "var(--pink-soft)",
+        },
+        mint: {
+          soft: "var(--mint-soft)",
+        },
+        coral: {
+          soft: "var(--coral-soft)",
+        },
+        peach: {
+          soft: "var(--peach-soft)",
+        },
+        cloud: {
+          white: "var(--cloud-white)",
+        },
+        gray: {
+          soft: "var(--gray-soft)",
+        },
       },
       keyframes: {
         "accordion-down": {

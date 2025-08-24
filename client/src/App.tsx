@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import NotFound from "@/pages/not-found";
 import DiaryPage from "@/pages/diary";
 import MemoirPage from "@/pages/memoir";
+import SettingsPage from "@/pages/settings";
 import LoginPage from "@/pages/login";
 import SignupPage from "@/pages/signup";
 import MenuSelectionPage from "@/pages/menu-selection";
@@ -84,6 +85,7 @@ function Router() {
             <Route path="/" component={DiaryPage} />
             <Route path="/diary" component={DiaryPage} />
             <Route path="/memoir" component={MemoirPage} />
+            <Route path="/settings" component={SettingsPage} />
             <Route path="/login" component={AuthRedirect} />
             <Route path="/signup" component={AuthRedirect} />
           </>

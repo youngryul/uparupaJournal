@@ -44,8 +44,8 @@ export function DiaryEntriesList({ entries, isLoading, onEntryUpdated }: DiaryEn
       'happy': '행복한 하루',
       'sad': '슬픈 하루',
       'angry': '화난 하루',
-      'peaceful': '평온한 하루',
-      'excited': '신나는 하루'
+      'peace': '평온한 하루',
+      'soso': '평범한 하루'
     };
     return labels[emotion as keyof typeof labels] || emotion;
   };
@@ -55,8 +55,8 @@ export function DiaryEntriesList({ entries, isLoading, onEntryUpdated }: DiaryEn
       'happy': '💗',
       'sad': '💙',
       'angry': '❤️',
-      'peaceful': '🌿',
-      'excited': '🎉'
+      'peace': '🌿',
+      'soso': '🎉'
     };
     return emojis[emotion as keyof typeof emojis] || '💙';
   };

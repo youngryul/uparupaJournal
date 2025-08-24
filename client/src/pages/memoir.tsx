@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -12,7 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { BookOpen, Plus, Clock, Edit3, Trash2 } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 
 export default function MemoirPage() {
@@ -146,7 +146,7 @@ export default function MemoirPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-sky-soft to-cloud-white p-4">
+    <div className="min-h-screen bg-gradient-to-br from-sky-soft to-cloud-white p-4 pb-24">
       <div className="max-w-4xl mx-auto">
         {/* 헤더 */}
         <div className="text-center mb-8">
@@ -326,10 +326,7 @@ export default function MemoirPage() {
                   
                   <div className="text-right">
                     <p className="text-sky-500 text-xs">
-                      {entry.createdAt && formatDistanceToNow(new Date(entry.createdAt), { 
-                        addSuffix: true, 
-                        locale: ko 
-                      })}
+                      {entry.createdAt && format(new Date(entry.createdAt), 'yyyy년 MM월 dd일 HH:mm', { locale: ko })}
                     </p>
                   </div>
                 </CardContent>

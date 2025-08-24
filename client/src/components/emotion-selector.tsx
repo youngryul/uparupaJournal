@@ -1,20 +1,14 @@
-import happyImg from '../asset/happy.png';
-import sadImg from '../asset/sad.png';
-import angryImg from '../asset/angry.png';
-import peaceImg from '../asset/peace.png';
-import sosoImg from '../asset/soso.png';
-
 interface EmotionSelectorProps {
   value: string;
   onChange: (value: string) => void;
 }
 
 const emotions = [
-  { id: "happy", label: "행복해요", color: "pink-soft", img: happyImg},
-  { id: "sad", label: "슬퍼요", color: "sky-light", img: sadImg },
-  { id: "angry", label: "화나요", color: "coral-soft", img: angryImg },
-  { id: "peaceful", label: "평온해요", color: "mint-soft", img: peaceImg },
-  { id: "excited", label: "그냥 그래", color: "peach-soft", img: sosoImg },
+  { id: "happy", label: "행복해요", color: "pink-soft", img: "/images/happy.png"},
+  { id: "sad", label: "슬퍼요", color: "sky-light", img: "/images/sad.png" },
+  { id: "angry", label: "화나요", color: "coral-soft", img: "/images/angry.png" },
+  { id: "peace", label: "평온해요", color: "mint-soft", img: "/images/peace.png" },
+  { id: "soso", label: "그냥 그래", color: "peach-soft", img: "/images/soso.png" },
 ];
 
 export function EmotionSelector({ value, onChange }: EmotionSelectorProps) {

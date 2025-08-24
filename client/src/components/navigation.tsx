@@ -2,12 +2,21 @@ import { Link, useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Heart, BookOpen, LogOut, User } from "lucide-react";
+import { Heart, BookOpen, BarChart3, Settings, Menu, User, LogOut, Bell, Shield, HelpCircle, Palette, Download } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
 
 export function Navigation() {
   const { user, logout } = useAuth();
   const [location] = useLocation();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // 사용자의 메뉴 설정 조회  
   const { data: userPreferences } = useQuery<{ useDiary?: boolean; useMemoir?: boolean }>({
@@ -30,54 +39,106 @@ export function Navigation() {
       icon: BookOpen,
       isActive: location === "/memoir",
     }] : []),
+    // 향후 확장을 위한 메뉴들
+    {
+      path: "/settings",
+      label: "설정",
+      icon: Settings,
+      isActive: location === "/settings",
+    },
   ];
 
+  // 하단에 고정된 탭 형태
+  const navClasses = "fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-sky-light/20 shadow-lg z-40";
+
   return (
-    <Card className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl axolotl-shadow border-sky-light/20">
-      <div className="flex items-center gap-2 p-4">
-        {/* 네비게이션 메뉴 */}
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          return (
-            <Link key={item.path} href={item.path}>
+    <Card className={navClasses}>
+      <div className="p-2">
+        {/* 탭 네비게이션 */}
+        <div className="flex items-center justify-around">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Link key={item.path} href={item.path}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  data-testid={`nav-${item.path === "/" ? "diary" : item.path.slice(1)}`}
+                  className={`flex flex-col items-center gap-1 px-3 py-2 h-auto min-h-0 rounded-xl transition-all ${
+                    item.isActive 
+                      ? "text-sky-600 bg-sky-light/20" 
+                      : "text-sky-500 hover:text-sky-600 hover:bg-sky-light/10"
+                  }`}
+                >
+                  <Icon className={`w-5 h-5 ${item.isActive ? 'text-sky-600' : 'text-sky-500'}`} />
+                  <span className="text-xs font-medium">{item.label}</span>
+                </Button>
+              </Link>
+            );
+          })}
+
+          {/* 햄버거 메뉴 - 오른쪽에 배치 */}
+          <DropdownMenu open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+            <DropdownMenuTrigger asChild>
               <Button
-                variant={item.isActive ? "default" : "ghost"}
+                variant="ghost"
                 size="sm"
-                data-testid={`nav-${item.path === "/" ? "diary" : item.path.slice(1)}`}
-                className={`px-4 py-2 rounded-2xl font-medium transition-all ${
-                  item.isActive 
-                    ? "bg-gradient-to-r from-sky-light to-sky-soft text-white shadow-lg transform scale-105" 
-                    : "text-sky-600 hover:bg-sky-light/10 hover:text-sky-700"
-                }`}
+                className="flex flex-col items-center gap-1 px-3 py-2 h-auto min-h-0 rounded-xl text-sky-500 hover:text-sky-600 hover:bg-sky-light/10"
               >
-                <Icon className="w-4 h-4 mr-2" />
-                {item.label}
+                <Menu className="w-5 h-5" />
+                <span className="text-xs font-medium">더보기</span>
               </Button>
-            </Link>
-          );
-        })}
-
-        {/* 구분선 */}
-        {navItems.length > 0 && (
-          <div className="w-px h-8 bg-sky-light/30 mx-2" />
-        )}
-
-        {/* 사용자 정보 */}
-        <div className="flex items-center gap-2 text-sky-700">
-          <User className="w-4 h-4" />
-          <span className="text-sm font-medium">{user.username}</span>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent 
+              align="end" 
+              className="w-56 bg-white/95 backdrop-blur-sm border border-sky-light/20 rounded-2xl shadow-xl"
+              side="top"
+            >
+              {/* 사용자 정보 */}
+              <DropdownMenuItem className="flex items-center gap-3 p-3 text-sky-700 hover:bg-sky-light/10 rounded-xl mx-2 my-1">
+                <User className="w-4 h-4" />
+                <div className="flex flex-col">
+                  <span className="font-medium">{user.username}</span>
+                  <span className="text-xs text-sky-500">사용자</span>
+                </div>
+              </DropdownMenuItem>
+              
+              <DropdownMenuSeparator className="bg-sky-light/20 mx-2" />
+              
+              {/* 추가 메뉴들 */}
+              <DropdownMenuItem className="flex items-center gap-3 p-3 text-sky-700 hover:bg-sky-light/10 rounded-xl mx-2 my-1">
+                <Bell className="w-4 h-4" />
+                <span>알림 설정</span>
+              </DropdownMenuItem>
+              
+              <DropdownMenuItem className="flex items-center gap-3 p-3 text-sky-700 hover:bg-sky-light/10 rounded-xl mx-2 my-1">
+                <Palette className="w-4 h-4" />
+                <span>테마 설정</span>
+              </DropdownMenuItem>
+              
+              <DropdownMenuItem className="flex items-center gap-3 p-3 text-sky-700 hover:bg-sky-light/10 rounded-xl mx-2 my-1">
+                <Download className="w-4 h-4" />
+                <span>데이터 백업</span>
+              </DropdownMenuItem>
+              
+              <DropdownMenuItem className="flex items-center gap-3 p-3 text-sky-700 hover:bg-sky-light/10 rounded-xl mx-2 my-1">
+                <HelpCircle className="w-4 h-4" />
+                <span>도움말</span>
+              </DropdownMenuItem>
+              
+              <DropdownMenuSeparator className="bg-sky-light/20 mx-2" />
+              
+              {/* 로그아웃 */}
+              <DropdownMenuItem 
+                className="flex items-center gap-3 p-3 text-red-600 hover:bg-red-50 rounded-xl mx-2 my-1"
+                onClick={logout}
+              >
+                <LogOut className="w-4 h-4" />
+                <span>로그아웃</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
-
-        {/* 로그아웃 */}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={logout}
-          data-testid="button-logout"
-          className="text-sky-600 hover:bg-red-50 hover:text-red-600 px-3 py-2 rounded-2xl"
-        >
-          <LogOut className="w-4 h-4" />
-        </Button>
       </div>
     </Card>
   );

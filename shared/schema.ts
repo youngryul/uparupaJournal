@@ -20,6 +20,7 @@ export const users = pgTable("users", {
   useDiary: boolean("use_diary").default(false),
   useMemoir: boolean("use_memoir").default(false),
   menuConfigured: boolean("menu_configured").default(false),
+  showInstallPrompt: boolean("show_install_prompt").default(true),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -59,6 +60,7 @@ export const insertUserSchema = createInsertSchema(users).pick({
   useDiary: true,
   useMemoir: true,
   menuConfigured: true,
+  showInstallPrompt: true,
 });
 
 export const insertDiaryEntrySchema = createInsertSchema(diaryEntries).pick({

@@ -173,7 +173,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // AI Analysis Routes
-  // Get analysis for a diary entry
+  // Get AI analysis status for a diary entry
   app.get("/api/diary-entries/:id/analysis", authMiddleware, async (req: AuthenticatedRequest, res) => {
     try {
       const diaryEntryId = parseInt(req.params.id);
@@ -184,19 +184,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "일기를 찾을 수 없습니다" });
       }
 
-      const analysis = await storage.getDiaryAnalysis(diaryEntryId);
-      if (!analysis) {
-        return res.status(404).json({ message: "분석 결과를 찾을 수 없습니다" });
+      // Check if analysis exists
+      const existingAnalysis = await storage.getDiaryAnalysis(diaryEntryId);
+      if (existingAnalysis) {
+        res.json({ 
+          hasAnalysis: true, 
+          analysis: existingAnalysis,
+          message: "AI 분석이 완료되었습니다"
+        });
+      } else {
+        res.json({ 
+          hasAnalysis: false, 
+          message: "AI 분석이 아직 완료되지 않았습니다"
+        });
       }
-
-      res.json(analysis);
     } catch (error) {
-      console.error("Get analysis error:", error);
-      res.status(500).json({ message: "분석 결과를 가져오는데 실패했습니다" });
+      console.error("Get analysis status error:", error);
+      res.status(500).json({ message: "AI 분석 상태를 확인하는데 실패했습니다" });
     }
   });
 
-  // Create AI analysis for a diary entry
   app.post("/api/diary-entries/:id/analysis", authMiddleware, async (req: AuthenticatedRequest, res) => {
     try {
       const diaryEntryId = parseInt(req.params.id);
@@ -334,11 +341,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         useDiary: user.useDiary,
         useMemoir: user.useMemoir,
-        menuConfigured: user.menuConfigured
+        menuConfigured: user.menuConfigured,
+        showInstallPrompt: user.showInstallPrompt
       });
     } catch (error) {
       console.error("Get user preferences error:", error);
       res.status(500).json({ message: "사용자 설정을 가져오는데 실패했습니다" });
+    }
+  });
+
+  // Update user preferences
+  app.put("/api/auth/user-preferences", authMiddleware, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { useDiary, useMemoir, menuConfigured, showInstallPrompt } = req.body;
+      const user = await storage.updateUserPreferences(req.userId!, {
+        useDiary,
+        useMemoir,
+        menuConfigured,
+        showInstallPrompt
+      });
+      
+      if (!user) {
+        return res.status(404).json({ message: "사용자를 찾을 수 없습니다" });
+      }
+      
+      res.json({
+        useDiary: user.useDiary,
+        useMemoir: user.useMemoir,
+        menuConfigured: user.menuConfigured,
+        showInstallPrompt: user.showInstallPrompt
+      });
+    } catch (error) {
+      console.error("Update user preferences error:", error);
+      res.status(500).json({ message: "사용자 설정 업데이트에 실패했습니다" });
     }
   });
 

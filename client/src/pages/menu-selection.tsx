@@ -9,7 +9,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { BookOpen, Heart, ArrowRight } from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 interface MenuSelectionProps {
   onComplete: (data: MenuSelectionData) => void;
@@ -45,8 +45,9 @@ export default function MenuSelectionPage({ onComplete }: MenuSelectionProps) {
       // 사용자 메뉴 설정 업데이트
       const response = await apiRequest('POST', '/api/auth/update-menu-preferences', data);
       
-      // 쿼리 캐시 무효화하여 새로운 설정 반영
-      window.location.reload();
+      // 사용자 설정 쿼리 캐시 무효화하여 새로운 설정 반영
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/user-preferences'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
       
       toast({
         title: "메뉴 설정 완료!",
@@ -56,9 +57,7 @@ export default function MenuSelectionPage({ onComplete }: MenuSelectionProps) {
       onComplete(data);
       
       // 메인 페이지로 이동
-      setTimeout(() => {
-        setLocation("/");
-      }, 1000);
+      setLocation("/");
       
     } catch (error: any) {
       toast({

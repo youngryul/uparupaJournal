@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertDiaryEntrySchema, insertDiaryAnalysisSchema, insertMemoirEntrySchema, loginSchema, signupSchema, menuSelectionSchema } from "@shared/schema";
-import { hashPassword, comparePassword, generateToken, authMiddleware, type AuthenticatedRequest } from "./auth";
+import { hashPassword, comparePassword, generateToken, authMiddleware, invalidateToken, type AuthenticatedRequest } from "./auth";
 import { analyzeDiary } from "./ai-analysis";
 import { z } from "zod";
 
@@ -66,6 +66,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "입력 데이터가 올바르지 않습니다", errors: error.errors });
       }
       res.status(500).json({ message: "로그인에 실패했습니다" });
+    }
+  });
+
+  app.post("/api/auth/logout", authMiddleware, async (req: AuthenticatedRequest, res) => {
+    try {
+      const token = req.headers.authorization?.replace('Bearer ', '');
+      if (token) {
+        // 토큰을 블랙리스트에 추가하여 무효화
+        invalidateToken(token);
+      }
+      
+      res.json({ 
+        message: "로그아웃이 완료되었습니다",
+        success: true
+      });
+    } catch (error) {
+      console.error("Logout error:", error);
+      res.status(500).json({ message: "로그아웃에 실패했습니다" });
     }
   });
 

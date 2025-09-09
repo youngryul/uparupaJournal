@@ -2,9 +2,10 @@ import { Link, useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Heart, BookOpen, BarChart3, Settings, Menu, User, LogOut, Bell, Shield, HelpCircle, Palette, Download } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { Heart, BookOpen, BarChart3, Settings, Menu, User, LogOut, Bell, Shield, HelpCircle, Palette, Download, CalendarDays } from "lucide-react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useState } from "react";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -19,7 +20,7 @@ export function Navigation() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // 사용자의 메뉴 설정 조회  
-  const { data: userPreferences } = useQuery<{ useDiary?: boolean; useMemoir?: boolean }>({
+  const { data: userPreferences } = useQuery<{ useDiary?: boolean; useMemoir?: boolean; usePeriodTracker?: boolean }>({
     queryKey: ['/api/auth/user-preferences'],
     enabled: !!user,
   });
@@ -39,6 +40,12 @@ export function Navigation() {
       icon: BookOpen,
       isActive: location === "/memoir",
     }] : []),
+    ...((userPreferences?.usePeriodTracker ?? true) ? [{
+      path: "/period-tracker",
+      label: "생리추적",
+      icon: CalendarDays,
+      isActive: location === "/period-tracker",
+    }] : []),
     // 향후 확장을 위한 메뉴들
     {
       path: "/settings",
@@ -47,6 +54,22 @@ export function Navigation() {
       isActive: location === "/settings",
     },
   ];
+
+  // 생리 추적 활성화 뮤테이션
+  const enablePeriodTrackerMutation = useMutation({
+    mutationFn: () => apiRequest('PUT', '/api/auth/user-preferences', {
+      usePeriodTracker: true
+    }),
+    onSuccess: () => {
+      // 쿼리 캐시 무효화하여 새로운 설정 반영
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/user-preferences'] });
+    },
+  });
+
+  // 디버깅을 위한 로그
+  console.log('Navigation - userPreferences:', userPreferences);
+  console.log('Navigation - usePeriodTracker:', userPreferences?.usePeriodTracker);
+  console.log('Navigation - navItems length:', navItems.length);
 
   // 하단에 고정된 탭 형태
   const navClasses = "fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-sky-light/20 shadow-lg z-40";
@@ -125,6 +148,17 @@ export function Navigation() {
                 <HelpCircle className="w-4 h-4" />
                 <span>도움말</span>
               </DropdownMenuItem>
+              
+              {/* 임시: 생리 추적 활성화 버튼 */}
+              {userPreferences?.usePeriodTracker !== true && (
+                <DropdownMenuItem 
+                  className="flex items-center gap-3 p-3 text-pink-600 hover:bg-pink-50 rounded-xl mx-2 my-1"
+                  onClick={() => enablePeriodTrackerMutation.mutate()}
+                >
+                  <CalendarDays className="w-4 h-4" />
+                  <span>생리 추적 활성화</span>
+                </DropdownMenuItem>
+              )}
               
               <DropdownMenuSeparator className="bg-sky-light/20 mx-2" />
               

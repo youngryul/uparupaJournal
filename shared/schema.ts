@@ -19,6 +19,7 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   useDiary: boolean("use_diary").default(false),
   useMemoir: boolean("use_memoir").default(false),
+  usePeriodTracker: boolean("use_period_tracker").default(true),
   menuConfigured: boolean("menu_configured").default(false),
   showInstallPrompt: boolean("show_install_prompt").default(true),
   createdAt: timestamp("created_at").defaultNow(),
@@ -54,11 +55,24 @@ export const diaryAnalyses = pgTable("diary_analyses", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const periodRecords = pgTable("period_records", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  date: text("date").notNull(), // YYYY-MM-DD format
+  type: text("type").notNull(), // 'start', 'end', 'symptom', 'mood'
+  flow: text("flow"), // 'light', 'medium', 'heavy' (only for 'start' type)
+  symptoms: text("symptoms").array(), // array of symptom strings
+  mood: text("mood"), // mood string
+  notes: text("notes"), // optional notes
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
   useDiary: true,
   useMemoir: true,
+  usePeriodTracker: true,
   menuConfigured: true,
   showInstallPrompt: true,
 });
@@ -87,6 +101,16 @@ export const insertDiaryAnalysisSchema = createInsertSchema(diaryAnalyses).pick(
   summary: true,
 });
 
+export const insertPeriodRecordSchema = createInsertSchema(periodRecords).pick({
+  userId: true,
+  date: true,
+  type: true,
+  flow: true,
+  symptoms: true,
+  mood: true,
+  notes: true,
+});
+
 export const loginSchema = z.object({
   username: z.string().min(1, "사용자명을 입력해주세요"),
   password: z.string().min(1, "비밀번호를 입력해주세요"),
@@ -104,6 +128,7 @@ export const signupSchema = z.object({
 export const menuSelectionSchema = z.object({
   useDiary: z.boolean().default(true),
   useMemoir: z.boolean().default(false),
+  usePeriodTracker: z.boolean().default(false),
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -114,6 +139,8 @@ export type InsertMemoirEntry = z.infer<typeof insertMemoirEntrySchema>;
 export type MemoirEntry = typeof memoirEntries.$inferSelect;
 export type InsertDiaryAnalysis = z.infer<typeof insertDiaryAnalysisSchema>;
 export type DiaryAnalysis = typeof diaryAnalyses.$inferSelect;
+export type InsertPeriodRecord = z.infer<typeof insertPeriodRecordSchema>;
+export type PeriodRecord = typeof periodRecords.$inferSelect;
 export type LoginData = z.infer<typeof loginSchema>;
 export type SignupData = z.infer<typeof signupSchema>;
 export type MenuSelectionData = z.infer<typeof menuSelectionSchema>;

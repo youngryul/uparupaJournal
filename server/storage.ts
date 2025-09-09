@@ -3,6 +3,7 @@ import {
   diaryEntries,
   diaryAnalyses,
   memoirEntries,
+  periodRecords,
   type User, 
   type InsertUser, 
   type DiaryEntry, 
@@ -11,6 +12,8 @@ import {
   type InsertDiaryAnalysis,
   type MemoirEntry,
   type InsertMemoirEntry,
+  type PeriodRecord,
+  type InsertPeriodRecord,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, like, or, and } from "drizzle-orm";
@@ -19,7 +22,7 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-  updateUserPreferences(id: number, preferences: { useDiary?: boolean; useMemoir?: boolean; menuConfigured?: boolean; showInstallPrompt?: boolean }): Promise<User | undefined>;
+  updateUserPreferences(id: number, preferences: { useDiary?: boolean; useMemoir?: boolean; usePeriodTracker?: boolean; menuConfigured?: boolean; showInstallPrompt?: boolean }): Promise<User | undefined>;
   
   getDiaryEntries(userId: number): Promise<DiaryEntry[]>;
   getDiaryEntry(id: number): Promise<DiaryEntry | undefined>;
@@ -38,6 +41,12 @@ export interface IStorage {
   createMemoirEntry(entry: InsertMemoirEntry): Promise<MemoirEntry>;
   updateMemoirEntry(id: number, entry: Partial<InsertMemoirEntry>): Promise<MemoirEntry | undefined>;
   deleteMemoirEntry(id: number): Promise<boolean>;
+
+  getPeriodRecords(userId: number): Promise<PeriodRecord[]>;
+  getPeriodRecord(id: number): Promise<PeriodRecord | undefined>;
+  createPeriodRecord(record: InsertPeriodRecord): Promise<PeriodRecord>;
+  updatePeriodRecord(id: number, record: Partial<InsertPeriodRecord>): Promise<PeriodRecord | undefined>;
+  deletePeriodRecord(id: number): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -45,10 +54,12 @@ export class MemStorage implements IStorage {
   private diaryEntries: DiaryEntry[] = [];
   private diaryAnalyses: DiaryAnalysis[] = [];
   private memoirEntries: MemoirEntry[] = [];
+  private periodRecords: PeriodRecord[] = [];
   private nextUserId = 1;
   private nextEntryId = 1;
   private nextAnalysisId = 1;
   private nextMemoirId = 1;
+  private nextPeriodRecordId = 1;
 
   async getUser(id: number): Promise<User | undefined> {
     return this.users.find(user => user.id === id);
@@ -65,6 +76,7 @@ export class MemStorage implements IStorage {
       password: insertUser.password,
       useDiary: insertUser.useDiary ?? false,
       useMemoir: insertUser.useMemoir ?? false,
+      usePeriodTracker: insertUser.usePeriodTracker ?? false,
       menuConfigured: insertUser.menuConfigured ?? false,
       showInstallPrompt: insertUser.showInstallPrompt ?? true,
       createdAt: new Date(),
@@ -73,12 +85,13 @@ export class MemStorage implements IStorage {
     return user;
   }
 
-  async updateUserPreferences(id: number, preferences: { useDiary?: boolean; useMemoir?: boolean; menuConfigured?: boolean; showInstallPrompt?: boolean }): Promise<User | undefined> {
+  async updateUserPreferences(id: number, preferences: { useDiary?: boolean; useMemoir?: boolean; usePeriodTracker?: boolean; menuConfigured?: boolean; showInstallPrompt?: boolean }): Promise<User | undefined> {
     const user = this.users.find(u => u.id === id);
     if (!user) return undefined;
     
     if (preferences.useDiary !== undefined) user.useDiary = preferences.useDiary;
     if (preferences.useMemoir !== undefined) user.useMemoir = preferences.useMemoir;
+    if (preferences.usePeriodTracker !== undefined) user.usePeriodTracker = preferences.usePeriodTracker;
     if (preferences.menuConfigured !== undefined) user.menuConfigured = preferences.menuConfigured;
     if (preferences.showInstallPrompt !== undefined) user.showInstallPrompt = preferences.showInstallPrompt;
     
@@ -209,6 +222,48 @@ export class MemStorage implements IStorage {
     this.memoirEntries.splice(index, 1);
     return true;
   }
+
+  async getPeriodRecords(userId: number): Promise<PeriodRecord[]> {
+    return this.periodRecords
+      .filter(record => record.userId === userId)
+      .sort((a, b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0));
+  }
+
+  async getPeriodRecord(id: number): Promise<PeriodRecord | undefined> {
+    return this.periodRecords.find(record => record.id === id);
+  }
+
+  async createPeriodRecord(insertRecord: InsertPeriodRecord): Promise<PeriodRecord> {
+    const record: PeriodRecord = {
+      id: this.nextPeriodRecordId++,
+      userId: insertRecord.userId,
+      date: insertRecord.date,
+      type: insertRecord.type,
+      flow: insertRecord.flow || null,
+      symptoms: insertRecord.symptoms || null,
+      mood: insertRecord.mood || null,
+      notes: insertRecord.notes || null,
+      createdAt: new Date(),
+    };
+    this.periodRecords.push(record);
+    return record;
+  }
+
+  async updatePeriodRecord(id: number, updateRecord: Partial<InsertPeriodRecord>): Promise<PeriodRecord | undefined> {
+    const index = this.periodRecords.findIndex(record => record.id === id);
+    if (index === -1) return undefined;
+    
+    this.periodRecords[index] = { ...this.periodRecords[index], ...updateRecord };
+    return this.periodRecords[index];
+  }
+
+  async deletePeriodRecord(id: number): Promise<boolean> {
+    const index = this.periodRecords.findIndex(record => record.id === id);
+    if (index === -1) return false;
+    
+    this.periodRecords.splice(index, 1);
+    return true;
+  }
 }
 
 export class DatabaseStorage implements IStorage {
@@ -230,7 +285,7 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async updateUserPreferences(id: number, preferences: { useDiary?: boolean; useMemoir?: boolean; menuConfigured?: boolean; showInstallPrompt?: boolean }): Promise<User | undefined> {
+  async updateUserPreferences(id: number, preferences: { useDiary?: boolean; useMemoir?: boolean; usePeriodTracker?: boolean; menuConfigured?: boolean; showInstallPrompt?: boolean }): Promise<User | undefined> {
     const [updated] = await db
       .update(users)
       .set(preferences)
@@ -349,6 +404,41 @@ export class DatabaseStorage implements IStorage {
 
   async deleteDiaryAnalysis(diaryEntryId: number): Promise<boolean> {
     const result = await db.delete(diaryAnalyses).where(eq(diaryAnalyses.diaryEntryId, diaryEntryId));
+    return result.length > 0;
+  }
+
+  async getPeriodRecords(userId: number): Promise<PeriodRecord[]> {
+    return await db
+      .select()
+      .from(periodRecords)
+      .where(eq(periodRecords.userId, userId))
+      .orderBy(desc(periodRecords.createdAt));
+  }
+
+  async getPeriodRecord(id: number): Promise<PeriodRecord | undefined> {
+    const [record] = await db.select().from(periodRecords).where(eq(periodRecords.id, id));
+    return record || undefined;
+  }
+
+  async createPeriodRecord(insertRecord: InsertPeriodRecord): Promise<PeriodRecord> {
+    const [record] = await db
+      .insert(periodRecords)
+      .values(insertRecord)
+      .returning();
+    return record;
+  }
+
+  async updatePeriodRecord(id: number, updateRecord: Partial<InsertPeriodRecord>): Promise<PeriodRecord | undefined> {
+    const [updated] = await db
+      .update(periodRecords)
+      .set(updateRecord)
+      .where(eq(periodRecords.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deletePeriodRecord(id: number): Promise<boolean> {
+    const result = await db.delete(periodRecords).where(eq(periodRecords.id, id));
     return result.length > 0;
   }
 }

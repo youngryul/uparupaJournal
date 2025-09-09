@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { BookOpen, Heart, ArrowRight } from "lucide-react";
+import { BookOpen, Heart, ArrowRight, CalendarDays } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
 interface MenuSelectionProps {
@@ -25,12 +25,13 @@ export default function MenuSelectionPage({ onComplete }: MenuSelectionProps) {
     defaultValues: {
       useDiary: true,
       useMemoir: false,
+      usePeriodTracker: false,
     },
   });
 
   const onSubmit = async (data: MenuSelectionData) => {
     // 최소 하나의 메뉴는 선택해야 함
-    if (!data.useDiary && !data.useMemoir) {
+    if (!data.useDiary && !data.useMemoir && !data.usePeriodTracker) {
       toast({
         title: "메뉴 선택 필요",
         description: "최소 하나의 메뉴는 선택해주세요.",
@@ -135,6 +136,32 @@ export default function MenuSelectionPage({ onComplete }: MenuSelectionProps) {
                       </FormLabel>
                       <p className="text-sky-600 text-sm">
                         인생의 중요한 시기와 경험들을 깊이 있게 되돌아보고 정리해요
+                      </p>
+                    </div>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="usePeriodTracker"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-xl border border-sky-light/30 p-6 bg-sky-light/5 hover:bg-sky-light/10 transition-colors">
+                    <FormControl>
+                      <Checkbox
+                        data-testid="checkbox-period-tracker"
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        className="mt-1"
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none flex-1">
+                      <FormLabel className="text-sky-700 font-semibold text-lg flex items-center gap-2">
+                        <CalendarDays className="w-5 h-5 text-pink-600" />
+                        생리 추적
+                      </FormLabel>
+                      <p className="text-sky-600 text-sm">
+                        생리주기를 건강하게 관리하고 패턴을 분석해요
                       </p>
                     </div>
                   </FormItem>

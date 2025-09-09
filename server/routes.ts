@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertDiaryEntrySchema, insertDiaryAnalysisSchema, insertMemoirEntrySchema, loginSchema, signupSchema, menuSelectionSchema } from "@shared/schema";
+import { insertDiaryEntrySchema, insertDiaryAnalysisSchema, insertMemoirEntrySchema, insertPeriodRecordSchema, loginSchema, signupSchema, menuSelectionSchema } from "@shared/schema";
 import { hashPassword, comparePassword, generateToken, authMiddleware, invalidateToken, type AuthenticatedRequest } from "./auth";
 import { analyzeDiary } from "./ai-analysis";
 import { z } from "zod";
@@ -98,6 +98,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         username: user.username,
         useDiary: user.useDiary,
         useMemoir: user.useMemoir,
+        usePeriodTracker: user.usePeriodTracker,
         menuConfigured: user.menuConfigured
       });
     } catch (error) {
@@ -356,9 +357,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!user) {
         return res.status(404).json({ message: "사용자를 찾을 수 없습니다" });
       }
+      
+      // 디버깅 로그
+      console.log("User data from database:", {
+        id: user.id,
+        username: user.username,
+        useDiary: user.useDiary,
+        useMemoir: user.useMemoir,
+        usePeriodTracker: user.usePeriodTracker,
+        menuConfigured: user.menuConfigured,
+        showInstallPrompt: user.showInstallPrompt
+      });
+      
       res.json({
         useDiary: user.useDiary,
         useMemoir: user.useMemoir,
+        usePeriodTracker: user.usePeriodTracker,
         menuConfigured: user.menuConfigured,
         showInstallPrompt: user.showInstallPrompt
       });
@@ -371,10 +385,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Update user preferences
   app.put("/api/auth/user-preferences", authMiddleware, async (req: AuthenticatedRequest, res) => {
     try {
-      const { useDiary, useMemoir, menuConfigured, showInstallPrompt } = req.body;
+      const { useDiary, useMemoir, usePeriodTracker, menuConfigured, showInstallPrompt } = req.body;
       const user = await storage.updateUserPreferences(req.userId!, {
         useDiary,
         useMemoir,
+        usePeriodTracker,
         menuConfigured,
         showInstallPrompt
       });
@@ -386,6 +401,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         useDiary: user.useDiary,
         useMemoir: user.useMemoir,
+        usePeriodTracker: user.usePeriodTracker,
         menuConfigured: user.menuConfigured,
         showInstallPrompt: user.showInstallPrompt
       });
@@ -464,6 +480,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Delete memoir entry error:", error);
       res.status(500).json({ message: "회고록 삭제에 실패했습니다" });
+    }
+  });
+
+  // Period tracking API
+  app.get("/api/period-records", authMiddleware, async (req: AuthenticatedRequest, res) => {
+    try {
+      const records = await storage.getPeriodRecords(req.userId!);
+      res.json(records);
+    } catch (error) {
+      console.error("Get period records error:", error);
+      res.status(500).json({ message: "생리 기록을 불러오는데 실패했습니다" });
+    }
+  });
+
+  app.post("/api/period-records", authMiddleware, async (req: AuthenticatedRequest, res) => {
+    try {
+      const validatedData = insertPeriodRecordSchema.parse({
+        ...req.body,
+        userId: req.userId
+      });
+      const record = await storage.createPeriodRecord(validatedData);
+      res.status(201).json(record);
+    } catch (error) {
+      console.error("Create period record error:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "입력 데이터가 올바르지 않습니다", errors: error.errors });
+      }
+      res.status(500).json({ message: "생리 기록 저장에 실패했습니다" });
+    }
+  });
+
+  app.put("/api/period-records/:id", authMiddleware, async (req: AuthenticatedRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const validatedData = insertPeriodRecordSchema.omit({ userId: true }).partial().parse(req.body);
+      const record = await storage.updatePeriodRecord(id, validatedData);
+      if (!record) {
+        return res.status(404).json({ message: "생리 기록을 찾을 수 없습니다" });
+      }
+      res.json(record);
+    } catch (error) {
+      console.error("Update period record error:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "입력 데이터가 올바르지 않습니다", errors: error.errors });
+      }
+      res.status(500).json({ message: "생리 기록 수정에 실패했습니다" });
+    }
+  });
+
+  app.delete("/api/period-records/:id", authMiddleware, async (req: AuthenticatedRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deletePeriodRecord(id);
+      if (!success) {
+        return res.status(404).json({ message: "생리 기록을 찾을 수 없습니다" });
+      }
+      res.json({ message: "생리 기록이 삭제되었습니다" });
+    } catch (error) {
+      console.error("Delete period record error:", error);
+      res.status(500).json({ message: "생리 기록 삭제에 실패했습니다" });
     }
   });
 

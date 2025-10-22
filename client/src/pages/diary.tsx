@@ -67,11 +67,16 @@ export default function DiaryPage() {
 
   const createMutation = useMutation({
     mutationFn: async (data: Omit<InsertDiaryEntry, "userId">) => {
+      console.log("일기 등록 요청 데이터:", data);
       const response = await apiRequest('POST', '/api/diary-entries', data);
-      return response.json();
+      const result = await response.json();
+      console.log("일기 등록 응답:", result);
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/diary-entries'] });
+      // 즉시 새로고침을 위해 refetch 실행
+      queryClient.refetchQueries({ queryKey: ['/api/diary-entries'] });
       setIsFormOpen(false);
       setEditingEntry(null);
       form.reset();

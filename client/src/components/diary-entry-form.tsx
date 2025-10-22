@@ -33,11 +33,16 @@ export function DiaryEntryForm({ onSuccess }: DiaryEntryFormProps) {
 
   const createMutation = useMutation({
     mutationFn: async (data: Omit<InsertDiaryEntry, 'userId'>) => {
+      console.log("일기 등록 요청 데이터:", data);
       const response = await apiRequest("POST", "/api/diary-entries", data);
-      return response.json();
+      const result = await response.json();
+      console.log("일기 등록 응답:", result);
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/diary-entries"] });
+      // 즉시 새로고침을 위해 refetch 실행
+      queryClient.refetchQueries({ queryKey: ["/api/diary-entries"] });
       toast({
         title: "일기가 저장되었습니다! 🌸",
         description: "소중한 하루가 기록되었어요.",

@@ -36,7 +36,7 @@ export function AIAnalysisModal({ diaryId, content, emotion, trigger, onAnalysis
 
   const analysisMutation = useMutation({
     mutationFn: async () => {
-      console.log("AI 분석 요청 시작:", { diaryId, content, emotion });
+      // console.log("AI 분석 요청 시작:", { diaryId, content, emotion });
       const response = await apiRequest('POST', `/api/diary-entries/${diaryId}/analysis`, {
         content,
         emotion
@@ -48,11 +48,11 @@ export function AIAnalysisModal({ diaryId, content, emotion, trigger, onAnalysis
       }
       
       const data = await response.json();
-      console.log("AI 분석 응답:", data);
+      // console.log("AI 분석 응답:", data);
       return data;
     },
     onSuccess: (data: AIAnalysisResult) => {
-      console.log("AI 분석 성공:", data);
+      // console.log("AI 분석 성공:", data);
       setHasAnalysis(true);
       setExistingAnalysis(data);
       if (onAnalysisComplete) {
@@ -64,7 +64,7 @@ export function AIAnalysisModal({ diaryId, content, emotion, trigger, onAnalysis
       });
     },
     onError: (error: any) => {
-      console.error("AI 분석 오류:", error);
+      // console.error("AI 분석 오류:", error);
       toast({
         title: "분석 실패",
         description: error.message || "AI 분석에 실패했습니다.",
@@ -77,32 +77,32 @@ export function AIAnalysisModal({ diaryId, content, emotion, trigger, onAnalysis
   useEffect(() => {
     const checkAnalysisStatus = async () => {
       try {
-        console.log(`일기 ${diaryId}의 AI 분석 상태 확인 시작`);
+        // console.log(`일기 ${diaryId}의 AI 분석 상태 확인 시작`);
         const response = await apiRequest('GET', `/api/diary-entries/${diaryId}/analysis`);
-        console.log('API 응답 상태:', response.status, response.ok);
+        // console.log('API 응답 상태:', response.status, response.ok);
         
         if (response.ok) {
           const data = await response.json();
-          console.log('AI 분석 상태 확인 결과:', data);
+          // console.log('AI 분석 상태 확인 결과:', data);
           
           if (data.hasAnalysis && data.analysis) {
-            console.log('기존 분석 결과 발견:', data.analysis);
+            // console.log('기존 분석 결과 발견:', data.analysis);
             setHasAnalysis(true);
             setExistingAnalysis(data.analysis);
-            console.log('상태 설정 완료: hasAnalysis=true, existingAnalysis=설정됨');
+            // console.log('상태 설정 완료: hasAnalysis=true, existingAnalysis=설정됨');
           } else {
-            console.log('기존 분석 결과 없음');
+            // console.log('기존 분석 결과 없음');
             setHasAnalysis(false);
             setExistingAnalysis(null);
-            console.log('상태 설정 완료: hasAnalysis=false, existingAnalysis=null');
+            // console.log('상태 설정 완료: hasAnalysis=false, existingAnalysis=null');
           }
         } else {
-          console.log('AI 분석 상태 확인 실패:', response.status);
+          // console.log('AI 분석 상태 확인 실패:', response.status);
           setHasAnalysis(false);
           setExistingAnalysis(null);
         }
       } catch (error) {
-        console.error('AI 분석 상태 확인 실패:', error);
+        // console.error('AI 분석 상태 확인 실패:', error);
         setHasAnalysis(false);
         setExistingAnalysis(null);
       }
@@ -110,7 +110,7 @@ export function AIAnalysisModal({ diaryId, content, emotion, trigger, onAnalysis
 
     // 모달이 열릴 때마다 상태 확인
     if (isOpen) {
-      console.log('모달 열림, AI 분석 상태 확인 시작');
+      // console.log('모달 열림, AI 분석 상태 확인 시작');
       // 상태 초기화
       setHasAnalysis(false);
       setExistingAnalysis(null);
@@ -123,28 +123,28 @@ export function AIAnalysisModal({ diaryId, content, emotion, trigger, onAnalysis
 
   // 상태 변화 추적
   useEffect(() => {
-    console.log('=== AI 분석 모달 상태 변화 ===');
-    console.log('diaryId:', diaryId);
-    console.log('isOpen:', isOpen);
-    console.log('hasAnalysis:', hasAnalysis);
-    console.log('existingAnalysis:', existingAnalysis ? '있음' : '없음');
-    if (existingAnalysis) {
-      console.log('existingAnalysis 상세:', {
-        id: existingAnalysis.id,
-        diaryEntryId: existingAnalysis.diaryEntryId,
-        emotionAnalysis: existingAnalysis.emotionAnalysis?.primary
-      });
-    }
-    console.log('analysisMutation.data:', analysisMutation.data ? '있음' : '없음');
-    console.log('분석 버튼 표시 여부:', !existingAnalysis && !hasAnalysis && !analysisMutation.data);
-    console.log('========================');
+    // console.log('=== AI 분석 모달 상태 변화 ===');
+    // console.log('diaryId:', diaryId);
+    // console.log('isOpen:', isOpen);
+    // console.log('hasAnalysis:', hasAnalysis);
+    // console.log('existingAnalysis:', existingAnalysis ? '있음' : '없음');
+    // if (existingAnalysis) {
+    //   console.log('existingAnalysis 상세:', {
+    //     id: existingAnalysis.id,
+    //     diaryEntryId: existingAnalysis.diaryEntryId,
+    //     emotionAnalysis: existingAnalysis.emotionAnalysis?.primary
+    //   });
+    // }
+    // console.log('analysisMutation.data:', analysisMutation.data ? '있음' : '없음');
+    // console.log('분석 버튼 표시 여부:', !existingAnalysis && !hasAnalysis && !analysisMutation.data);
+    // console.log('========================');
   }, [diaryId, isOpen, hasAnalysis, existingAnalysis, analysisMutation.data]);
 
   const handleAnalyze = () => {
     if (existingAnalysis) {
-      console.log('기존 분석이 있으므로 재분석 진행');
+      // console.log('기존 분석이 있으므로 재분석 진행');
     } else {
-      console.log('새로운 분석 시작');
+      // console.log('새로운 분석 시작');
     }
     analysisMutation.mutate();
   };
@@ -344,8 +344,8 @@ export function AIAnalysisModal({ diaryId, content, emotion, trigger, onAnalysis
             </Card>
           )}
 
-          {/* 디버깅 정보 (개발 모드에서만) */}
-          {process.env.NODE_ENV === 'development' && (
+          {/* 디버깅 정보 (개발 모드에서만) - 주석 처리됨 */}
+          {/* {process.env.NODE_ENV === 'development' && (
             <Card className="bg-gray-100 border border-gray-300">
               <CardContent className="p-4">
                 <h4 className="font-bold mb-2">디버깅 정보</h4>
@@ -357,7 +357,7 @@ export function AIAnalysisModal({ diaryId, content, emotion, trigger, onAnalysis
                 </div>
               </CardContent>
             </Card>
-          )}
+          )} */}
         </div>
       </DialogContent>
     </Dialog>

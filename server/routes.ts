@@ -110,9 +110,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get user's diary entries
   app.get("/api/diary-entries", authMiddleware, async (req: AuthenticatedRequest, res) => {
     try {
+      console.log("일기 목록 조회 요청 - 사용자 ID:", req.userId);
       const entries = await storage.getDiaryEntries(req.userId!);
+      console.log("조회된 일기 개수:", entries.length);
       res.json(entries);
     } catch (error) {
+      console.error("일기 목록 조회 오류:", error);
       res.status(500).json({ message: "Failed to fetch diary entries" });
     }
   });
@@ -134,13 +137,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create a new diary entry
   app.post("/api/diary-entries", authMiddleware, async (req: AuthenticatedRequest, res) => {
     try {
+      console.log("일기 생성 요청:", req.body);
+      console.log("사용자 ID:", req.userId);
+      
       const validatedData = insertDiaryEntrySchema.parse({
         ...req.body,
         userId: req.userId
       });
+      
+      console.log("검증된 데이터:", validatedData);
       const entry = await storage.createDiaryEntry(validatedData);
+      console.log("생성된 일기:", entry);
+      
       res.status(201).json(entry);
     } catch (error) {
+      console.error("일기 생성 오류:", error);
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid data", errors: error.errors });
       }

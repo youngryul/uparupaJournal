@@ -325,8 +325,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteDiaryEntry(id: number): Promise<boolean> {
-    const result = await db.delete(diaryEntries).where(eq(diaryEntries.id, id));
-    return result.length > 0;
+    // 먼저 삭제할 항목이 존재하는지 확인
+    const existingEntry = await this.getDiaryEntry(id);
+    if (!existingEntry) {
+      console.log("삭제할 일기가 존재하지 않음:", id);
+      return false;
+    }
+    
+    // 삭제 실행
+    await db.delete(diaryEntries).where(eq(diaryEntries.id, id));
+    console.log("일기 삭제 완료:", id);
+    return true;
   }
 
   async searchDiaryEntries(query: string, userId: number): Promise<DiaryEntry[]> {

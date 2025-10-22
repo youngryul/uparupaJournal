@@ -20,20 +20,24 @@ export function DiaryEntriesList({ entries, isLoading, onEntryUpdated }: DiaryEn
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
+      console.log("일기 삭제 요청:", id);
       await apiRequest("DELETE", `/api/diary-entries/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/diary-entries"] });
+      // 즉시 새로고침을 위해 refetch 실행
+      queryClient.refetchQueries({ queryKey: ["/api/diary-entries"] });
       toast({
         title: "일기가 삭제되었습니다",
         description: "선택한 일기가 삭제되었어요.",
       });
       onEntryUpdated();
     },
-    onError: () => {
+    onError: (error: any) => {
+      console.error("일기 삭제 오류:", error);
       toast({
         title: "삭제에 실패했습니다",
-        description: "다시 시도해주세요.",
+        description: error.message || "다시 시도해주세요.",
         variant: "destructive",
       });
     },

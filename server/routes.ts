@@ -181,12 +181,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/diary-entries/:id", authMiddleware, async (req: AuthenticatedRequest, res) => {
     try {
       const id = parseInt(req.params.id);
-      const success = await storage.deleteDiaryEntry(id);
-      if (!success) {
+      console.log("일기 삭제 요청:", { id, userId: req.userId });
+      
+      // 먼저 일기가 존재하는지 확인
+      const entry = await storage.getDiaryEntry(id);
+      console.log("삭제할 일기 확인:", entry);
+      
+      if (!entry) {
+        console.log("일기를 찾을 수 없음:", id);
         return res.status(404).json({ message: "Diary entry not found" });
       }
+      
+      // 사용자 권한 확인 (일기가 해당 사용자의 것인지)
+      if (entry.userId !== req.userId) {
+        console.log("권한 없음:", { entryUserId: entry.userId, requestUserId: req.userId });
+        return res.status(403).json({ message: "Unauthorized to delete this diary entry" });
+      }
+      
+      const success = await storage.deleteDiaryEntry(id);
+      console.log("삭제 결과:", success);
+      
+      if (!success) {
+        console.log("삭제 실패 - 일기를 찾을 수 없거나 삭제할 수 없음");
+        return res.status(404).json({ message: "Diary entry not found" });
+      }
+      
+      console.log("일기 삭제 성공:", id);
       res.json({ message: "Diary entry deleted successfully" });
     } catch (error) {
+      console.error("일기 삭제 오류:", error);
       res.status(500).json({ message: "Failed to delete diary entry" });
     }
   });
